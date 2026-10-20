@@ -89,9 +89,8 @@ jobs:
           s = re.sub(r'(<code id="h1">)[0-9a-f]{64}', lambda m: m.group(1) + sums['ClassSchedule.exe'], s)
           s = re.sub(r'(<code id="h2">)[0-9a-f]{64}', lambda m: m.group(1) + sums['ClassSchedule-needs-dotnet8.zip'], s)
           exe, zip_ = mb('ClassSchedule.exe'), mb('ClassSchedule-needs-dotnet8.zip')
-          s = re.sub(r'(Standalone <span[^>]*>· )\d+( MB)', lambda m: f'{m.group(1)}{exe}{m.group(2)}', s)
-          s = re.sub(r'(Small zip <span[^>]*>· )\d+( MB)', lambda m: f'{m.group(1)}{zip_}{m.group(2)}', s)
-          s = re.sub(r'\d+ MB, nothing to install', f'{exe} MB, nothing to install', s)
+          s = re.sub(r'(<span data-size="exe">)\d+( MB)', lambda m: f'{m.group(1)}{exe}{m.group(2)}', s)
+          s = re.sub(r'(<span data-size="zip">)\d+( MB)', lambda m: f'{m.group(1)}{zip_}{m.group(2)}', s)
           open(p, 'w', encoding='utf-8').write(s)
           PY
           touch landing/.nojekyll
