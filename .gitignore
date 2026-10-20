@@ -1,0 +1,49 @@
+# Build output
+bin/
+obj/
+dist/
+dist-lite/
+publish/
+*.zip
+
+# Release binaries served by the landing page (rebuild with dotnet publish)
+landing/download/
+
+# Visual Studio, Rider, VS Code
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.DotSettings.user
+launchSettings.json
+
+# Tests and coverage
+TestResults/
+*.trx
+coverage*.xml
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+
+# Logs and local data
+*.log
+schedule.json
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local tooling
+.claude/settings.local.json
+
+# Crash dumps
+core
+core.[0-9]*
+
+# Personal schedule files used for local testing
+schedules/

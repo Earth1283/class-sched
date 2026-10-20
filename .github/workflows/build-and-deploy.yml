@@ -1,0 +1,124 @@
+name: Build, release and publish the landing page
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    name: Build the Windows binaries
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Test
+        run: dotnet test tests/ClassSchedule.Core.Tests --configuration Release
+
+      - name: Work out the version
+        id: version
+        shell: pwsh
+        run: |
+          $v = if ($env:GITHUB_REF -like 'refs/tags/v*') { $env:GITHUB_REF_NAME.Substring(1) } else { '1.0.0' }
+          "value=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Publish the standalone exe
+        run: dotnet publish src/ClassSchedule/ClassSchedule.csproj -c Release -r win-x64 --self-contained -p:Version=${{ steps.version.outputs.value }} -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -o publish/standalone
+
+      - name: Publish the small build
+        run: dotnet publish src/ClassSchedule/ClassSchedule.csproj -c Release -r win-x64 --no-self-contained -p:Version=${{ steps.version.outputs.value }} -p:PublishSingleFile=true -p:DebugType=none -o publish/lite
+
+      - name: Package and checksum
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item publish/standalone/ClassSchedule.exe out/ClassSchedule.exe
+          Compress-Archive -Path publish/lite/ClassSchedule.exe -DestinationPath out/ClassSchedule-needs-dotnet8.zip
+          Get-ChildItem out -File | ForEach-Object {
+            '{0}  {1}' -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name
+          } | Set-Content out/SHA256SUMS.txt -Encoding ascii
+          Get-Content out/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-binaries
+          path: out/*
+          if-no-files-found: error
+
+  pages:
+    name: Publish the landing page with the exe
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref_type == 'branch' && github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-binaries
+          path: landing/download
+
+      - name: Put the real checksums and sizes on the page
+        run: |
+          python3 - <<'PY'
+          import os, re
+          d = 'landing/download'
+          sums = dict(line.split('  ', 1)[::-1] for line in open(f'{d}/SHA256SUMS.txt').read().splitlines() if line.strip())
+          mb = lambda name: max(1, round(os.path.getsize(f'{d}/{name}') / 1048576))
+          p = 'landing/index.html'
+          s = open(p, encoding='utf-8').read()
+          s = re.sub(r'(<code id="h1">)[0-9a-f]{64}', lambda m: m.group(1) + sums['ClassSchedule.exe'], s)
+          s = re.sub(r'(<code id="h2">)[0-9a-f]{64}', lambda m: m.group(1) + sums['ClassSchedule-needs-dotnet8.zip'], s)
+          exe, zip_ = mb('ClassSchedule.exe'), mb('ClassSchedule-needs-dotnet8.zip')
+          s = re.sub(r'(Standalone <span[^>]*>· )\d+( MB)', lambda m: f'{m.group(1)}{exe}{m.group(2)}', s)
+          s = re.sub(r'(Small zip <span[^>]*>· )\d+( MB)', lambda m: f'{m.group(1)}{zip_}{m.group(2)}', s)
+          s = re.sub(r'\d+ MB, nothing to install', f'{exe} MB, nothing to install', s)
+          open(p, 'w', encoding='utf-8').write(s)
+          PY
+          touch landing/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: landing
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+  release:
+    name: Attach the binaries to a GitHub release
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-binaries
+          path: out
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: out/*
+          generate_release_notes: true

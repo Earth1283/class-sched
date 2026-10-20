@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Class Schedule for Windows</title>
+<meta name="description" content="A calm, fast class schedule for Windows. Paste your whole semester, see it as a week, and get reminded before class. Local, private, one file.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f8fafd; --panel: #ffffff; --soft: #f1f4f9; --line: #dadce0; --line-strong: #747775;
+  --ink: #1f1f1f; --ink2: #444746; --ink3: #5f6368;
+  --primary: #0b57d0; --primary-hover: #0a4db8; --on-primary: #ffffff;
+  --container: #c2e7ff; --on-container: #001d35;
+  --shadow: 0 1px 2px rgba(60,64,67,.12), 0 8px 24px rgba(60,64,67,.12), 0 32px 80px rgba(11,87,208,.10);
+  --font: "Figtree", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --ease: cubic-bezier(.2,.7,.2,1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0b0c; --panel: #131314; --soft: #1b1b1c; --line: #303134; --line-strong: #8e918f;
+    --ink: #e3e3e3; --ink2: #c4c7c5; --ink3: #9aa0a6;
+    --primary: #a8c7fa; --primary-hover: #bcd3fb; --on-primary: #062e6f;
+    --container: #004a77; --on-container: #c2e7ff;
+    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.5), 0 32px 80px rgba(168,199,250,.07);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0b0c; --panel: #131314; --soft: #1b1b1c; --line: #303134; --line-strong: #8e918f;
+  --ink: #e3e3e3; --ink2: #c4c7c5; --ink3: #9aa0a6;
+  --primary: #a8c7fa; --primary-hover: #bcd3fb; --on-primary: #062e6f;
+  --container: #004a77; --on-container: #c2e7ff;
+  --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.5), 0 32px 80px rgba(168,199,250,.07);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 17px/1.6 var(--font); -webkit-font-smoothing: antialiased; }
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; }
+.wrap { width: min(1180px, 100% - 2 * max(20px, env(safe-area-inset-left, 0px))); margin-inline: auto; }
+section { padding-block: clamp(64px, 9vw, 120px); scroll-margin-top: 56px; }
+
+/* nav */
+.nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(14px); border-bottom: 1px solid transparent; transition: border-color .3s var(--ease); }
+.nav.scrolled { border-color: var(--line); }
+.nav .wrap { display: flex; align-items: center; gap: 28px; height: 68px; }
+.brand { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 20px; letter-spacing: -.01em; text-decoration: none; }
+.mark { width: 32px; height: 32px; border-radius: 9px; background: var(--primary); display: grid; place-items: center; }
+.mark svg { width: 18px; height: 18px; stroke: var(--on-primary); fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.links { display: flex; gap: 6px; margin-left: auto; }
+.links a { padding: 8px 14px; border-radius: 999px; text-decoration: none; color: var(--ink2); font-size: 15px; font-weight: 500; transition: background .2s; }
+.links a:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+
+/* buttons */
+.btn { display: inline-flex; align-items: center; gap: 10px; height: 48px; padding: 0 26px; border-radius: 999px; font: 600 16px var(--font); text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: transform .25s var(--ease), background .2s, box-shadow .25s; }
+.btn:active { transform: scale(.97); }
+.btn.primary { background: var(--primary); color: var(--on-primary); }
+.btn.primary:hover { background: var(--primary-hover); box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 35%, transparent); }
+.btn.ghost { border-color: var(--line-strong); color: var(--ink); background: transparent; }
+.btn.ghost:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.btn.sm { height: 40px; padding: 0 20px; font-size: 15px; }
+.btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+/* hero */
+.hero { padding-top: clamp(40px, 7vw, 88px); padding-bottom: 0; text-align: center; overflow: hidden; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: var(--container); color: var(--on-container); font-size: 14px; font-weight: 600; }
+h1 { font-size: clamp(40px, 7vw, 84px); line-height: 1.02; letter-spacing: -.035em; font-weight: 700; margin: 24px auto 0; max-width: 15ch; text-wrap: balance; }
+h1 em { font-style: normal; color: var(--primary); }
+.lead { font-size: clamp(18px, 2vw, 22px); color: var(--ink2); max-width: 52ch; margin: 22px auto 0; text-wrap: pretty; }
+.cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 34px; }
+.fine { margin-top: 16px; color: var(--ink3); font-size: 14px; }
+.stage { position: relative; margin-top: clamp(44px, 6vw, 72px); padding-bottom: clamp(30px, 6vw, 80px); }
+.stage .win { margin-inline: auto; }
+.stage .dlg { position: absolute; right: -2%; bottom: 0; width: 44%; transform: translateY(0); }
+.stage::before { content: ""; position: absolute; inset: 6% 8% 0; background: radial-gradient(60% 60% at 50% 40%, color-mix(in srgb, var(--primary) 22%, transparent), transparent 70%); filter: blur(40px); z-index: -1; }
+
+/* window frames */
+.win, .dlg { background: var(--panel); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; border: 1px solid var(--line); text-align: left; }
+.bar { display: flex; align-items: center; gap: 10px; height: 36px; padding-left: 14px; font-size: 13px; color: var(--ink2); background: var(--soft); border-bottom: 1px solid var(--line); }
+.bar .dot { width: 14px; height: 14px; border-radius: 4px; background: var(--primary); }
+.bar .ctl { margin-left: auto; display: flex; height: 100%; }
+.bar .ctl span { width: 44px; display: grid; place-items: center; }
+.bar .ctl svg { width: 11px; height: 11px; stroke: var(--ink2); fill: none; stroke-width: 1.2; }
+.win img, .dlg img { width: 100%; }
+.dlg .bar { height: 32px; }
+.dlg .bar .ctl span { width: 40px; }
+
+/* tabs */
+.head { max-width: 680px; }
+.head.center { margin-inline: auto; text-align: center; }
+h2 { font-size: clamp(30px, 4.4vw, 54px); line-height: 1.06; letter-spacing: -.03em; font-weight: 700; margin: 0; text-wrap: balance; }
+.head p { color: var(--ink2); font-size: 19px; margin: 18px 0 0; text-wrap: pretty; }
+.controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 36px; }
+.seg { display: inline-flex; position: relative; border: 1px solid var(--line-strong); border-radius: 999px; padding: 0; height: 44px; }
+.seg button { position: relative; z-index: 1; border: 0; background: transparent; color: var(--ink); font: 500 15px var(--font); width: 84px; border-radius: 999px; cursor: pointer; transition: color .25s; }
+.seg .thumb { position: absolute; top: -1px; bottom: -1px; left: -1px; width: 86px; border-radius: 999px; background: var(--container); transition: transform .5s var(--ease); }
+.seg button[aria-pressed="true"] { color: var(--on-container); font-weight: 600; }
+.shots { position: relative; margin-top: 36px; }
+.shots .win { max-width: 1100px; margin-inline: auto; }
+.shots .frame { position: relative; aspect-ratio: 1320 / 820; }
+.shots .frame img { position: absolute; inset: 0; opacity: 0; transition: opacity .45s var(--ease); }
+.shots .frame img.on { opacity: 1; }
+
+/* settings tour */
+.tour { padding-bottom: 0; }
+.tour-track { --n: 7; position: relative; height: calc(var(--n) * 62vh + 40vh); margin-top: 40px; }
+.tour-sticky { position: sticky; top: 76px; height: min(calc(100vh - 96px), 720px); min-height: 480px; display: grid; grid-template-columns: minmax(280px, .72fr) 1.5fr; gap: clamp(28px, 5vw, 72px); align-items: center; }
+.tour-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; position: relative; }
+.tour-steps::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 2px; background: var(--line); border-radius: 2px; }
+.tour-steps::after { content: ""; position: absolute; left: 0; top: 6px; width: 2px; height: calc((100% - 12px) * var(--p, 0)); background: var(--primary); border-radius: 2px; }
+.tour-steps li { position: relative; padding: 10px 0 10px 26px; cursor: pointer; opacity: .42; transition: opacity .5s var(--ease); outline-offset: 2px; }
+.tour-steps li.on { opacity: 1; }
+.tour-steps li:hover { opacity: .8; }
+.tour-steps li.on:hover { opacity: 1; }
+.tour-steps .n { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .12em; color: var(--primary); }
+.tour-steps h3 { margin: 2px 0 0; font-size: clamp(18px, 1.7vw, 22px); letter-spacing: -.015em; font-weight: 650; }
+.tour-steps .more { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .6s var(--ease); }
+.tour-steps li.on .more { grid-template-rows: 1fr; }
+.tour-steps .more > div { overflow: hidden; }
+.tour-steps p { margin: 8px 0 0; color: var(--ink2); font-size: 16px; opacity: 0; transform: translateY(6px); transition: opacity .5s var(--ease) .1s, transform .5s var(--ease) .1s; }
+.tour-steps li.on p { opacity: 1; transform: none; }
+.tour-steps .inl { display: none; }
+.tour-stage { position: relative; }
+.tour-stage .win { transform: translateY(var(--ty, 0px)); will-change: transform; }
+.tframe { position: relative; aspect-ratio: 1320 / 800; background: var(--panel); }
+.tframe img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transform: scale(.985) translateY(10px); transition: opacity .55s var(--ease), transform .8s var(--ease); }
+.tframe img.on { opacity: 1; transform: none; }
+.tour-tag { position: absolute; right: 0; top: -46px; display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 13.5px; font-weight: 600; box-shadow: 0 6px 18px color-mix(in srgb, var(--primary) 35%, transparent); transition: opacity .4s var(--ease), transform .5s var(--ease); }
+.tour-tag.swap { opacity: 0; transform: translateY(8px); }
+.tour-dots { display: flex; justify-content: center; gap: 8px; margin-top: 18px; }
+.tour-dots i { width: 8px; height: 8px; border-radius: 99px; background: var(--line-strong); opacity: .4; transition: width .5s var(--ease), opacity .4s, background .4s; }
+.tour-dots i.on { width: 26px; opacity: 1; background: var(--primary); }
+@media (max-width: 900px), (prefers-reduced-motion: reduce) {
+  .tour-track { height: auto; }
+  .tour-sticky { position: static; height: auto; min-height: 0; display: block; }
+  .tour-stage, .tour-steps::before, .tour-steps::after { display: none; }
+  .tour-steps { gap: 38px; }
+  .tour-steps li { opacity: 1; padding-left: 0; cursor: default; }
+  .tour-steps .more { grid-template-rows: 1fr; }
+  .tour-steps p { opacity: 1; transform: none; }
+  .tour-steps .inl { display: block; margin-top: 16px; border-radius: 14px; border: 1px solid var(--line); box-shadow: var(--shadow); }
+}
+
+/* splits */
+.split { display: grid; grid-template-columns: 1fr 1.25fr; gap: clamp(32px, 6vw, 88px); align-items: center; }
+.split.flip { grid-template-columns: 1.1fr 1fr; }
+.split > *, .get > *, .card.full > * { min-width: 0; }
+.split.flip .copy { order: 2; }
+.copy h2 { font-size: clamp(28px, 3.6vw, 46px); }
+.copy p { color: var(--ink2); font-size: 18px; margin: 18px 0 0; }
+.ticks { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 14px; }
+.ticks li { display: grid; grid-template-columns: 26px 1fr; gap: 12px; align-items: start; color: var(--ink2); font-size: 16.5px; }
+.ticks svg { width: 26px; height: 26px; padding: 5px; border-radius: 50%; background: var(--container); stroke: var(--on-container); fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.ticks b { color: var(--ink); font-weight: 600; }
+code, .mono { font-family: "Cascadia Mono", "SF Mono", Consolas, ui-monospace, monospace; font-size: .86em; background: var(--soft); border: 1px solid var(--line); padding: 2px 8px; border-radius: 8px; }
+.paste { margin-top: 26px; padding: 16px 18px; border-radius: 14px; background: var(--soft); border: 1px solid var(--line); font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; font-size: 13.5px; line-height: 1.75; color: var(--ink2); overflow-x: auto; white-space: pre; }
+.paste i { font-style: normal; color: var(--primary); }
+
+/* cards */
+.grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; margin-top: 56px; }
+.card { grid-column: span 4; background: var(--panel); border: 1px solid var(--line); border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 10px; transition: transform .45s var(--ease), box-shadow .45s var(--ease); }
+.card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+.card.wide { grid-column: span 7; }
+.card.mid { grid-column: span 5; }
+.card.full { grid-column: span 12; display: grid; grid-template-columns: 1fr 1.25fr; gap: 28px 40px; align-items: center; padding: clamp(24px, 4vw, 44px); }
+.card.full .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.card.full .pair img { border-radius: 18px; }
+@media (max-width: 900px) { .card.full { grid-template-columns: 1fr; } }
+.card .ic { width: 44px; height: 44px; border-radius: 14px; background: var(--container); display: grid; place-items: center; margin-bottom: 8px; }
+.card .ic svg { width: 22px; height: 22px; stroke: var(--on-container); fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.card h3 { margin: 0; font-size: 21px; letter-spacing: -.015em; font-weight: 650; }
+.card p { margin: 0; color: var(--ink2); font-size: 16px; }
+.card .pic { margin: 18px -28px -28px; border-top: 1px solid var(--line); background: var(--soft); overflow: hidden; }
+.card .pic img { width: 100%; }
+
+/* download */
+.get { background: var(--panel); border: 1px solid var(--line); border-radius: 32px; padding: clamp(28px, 5vw, 64px); display: grid; grid-template-columns: 1.1fr 1fr; gap: clamp(28px, 5vw, 64px); box-shadow: var(--shadow); }
+.get h2 { font-size: clamp(30px, 4vw, 48px); }
+.get .sub { color: var(--ink2); margin: 16px 0 0; font-size: 18px; }
+.opts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-content: start; }
+.opt, .sum { min-width: 0; }
+.opt { border: 1px solid var(--line); border-radius: 20px; padding: 20px 22px; display: grid; gap: 12px; background: var(--bg); }
+.opt.main { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 6%, var(--bg)); }
+.opt h3 { margin: 0; font-size: 18px; font-weight: 650; }
+.opt p { margin: 0; color: var(--ink3); font-size: 14.5px; }
+.sum { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink3); }
+.sum code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sum button { border: 1px solid var(--line-strong); background: transparent; color: var(--ink); height: 30px; padding: 0 12px; border-radius: 999px; font: 500 12.5px var(--font); cursor: pointer; }
+.note { margin-top: 28px; padding: 16px 18px; border-radius: 16px; background: var(--soft); color: var(--ink2); font-size: 15px; display: grid; grid-template-columns: 22px 1fr; gap: 12px; }
+.note svg { width: 22px; height: 22px; stroke: var(--primary); fill: none; stroke-width: 1.9; stroke-linecap: round; }
+.reqs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+.reqs span { border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: 14px; color: var(--ink2); }
+
+footer { padding: 40px 0 56px; color: var(--ink3); font-size: 14px; border-top: 1px solid var(--line); }
+footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px 32px; }
+
+/* reveal */
+.rv { opacity: 0; transform: translateY(28px); transition: opacity .9s var(--ease), transform .9s var(--ease); transition-delay: var(--d, 0s); }
+.rv.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; transition: none; } html { scroll-behavior: auto; } .shots .frame img, .seg .thumb, .tframe img { transition: none; } }
+
+@media (max-width: 900px) {
+  .split, .split.flip, .get { grid-template-columns: 1fr; }
+  .split.flip .copy { order: 0; }
+  .card, .card.wide, .card.mid { grid-column: span 12; }
+  .links a:not(.keep) { display: none; }
+  .stage .dlg { position: relative; width: 78%; right: auto; margin: -36px 0 0 auto; }
+}
+@media (max-width: 520px) { .seg button { width: 72px; } .seg .thumb { width: 74px; } .btn { width: 100%; justify-content: center; } }
+</style>
+<noscript><style>.rv{opacity:1;transform:none}</style></noscript>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="mark"><svg viewBox="0 0 24 24"><path d="M7.5 5.5h9a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-9a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3zM4.5 10h15M9 3.5v3M15 3.5v3"/></svg></span>Class Schedule</a>
+    <nav class="links" aria-label="Sections">
+      <a href="#views">Views</a><a href="#settings">Settings</a><a href="#bulk">Bulk add</a><a href="#features">Features</a>
+      <a class="keep" href="#download">Download</a>
+    </nav>
+    <a class="btn primary sm" href="#download">Get it</a>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow rv">Windows · one file · no account</span>
+    <h1 class="rv" style="--d:.06s">Your whole semester, <em>at a glance.</em></h1>
+    <p class="lead rv" style="--d:.12s">Paste your classes, see them as a clean week, and get a nudge before each one starts. Everything stays on your PC.</p>
+    <div class="cta rv" style="--d:.18s">
+      <a class="btn primary" href="download/ClassSchedule.exe" download>
+        <svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 11 12 15.5 16.5 11M5 19h14"/></svg>Download for Windows
+      </a>
+      <a class="btn ghost" href="#views">See it in action</a>
+    </div>
+    <p class="fine rv" style="--d:.22s">69 MB, nothing to install. Windows 10 or 11, 64-bit.</p>
+
+    <div class="stage rv" style="--d:.28s">
+      <div class="win">
+        <div class="bar"><span class="dot"></span>Class Schedule — Sample term<span class="ctl"><span><svg viewBox="0 0 11 11"><path d="M0 5.5h11"/></svg></span><span><svg viewBox="0 0 11 11"><rect x=".5" y=".5" width="10" height="10"/></svg></span><span><svg viewBox="0 0 11 11"><path d="M0 0l11 11M11 0 0 11"/></svg></span></span></div>
+        <img src="img/week-light.png" width="1320" height="820" alt="Week view of Class Schedule showing five days of colour-coded classes, a mini month, and a panel for the class happening now.">
+      </div>
+      <div class="dlg">
+        <div class="bar">Bulk add classes<span class="ctl"><span><svg viewBox="0 0 11 11"><path d="M0 0l11 11M11 0 0 11"/></svg></span></span></div>
+        <img src="img/bulk.png" width="972" height="626" alt="Bulk add dialog with pasted classes on the left and a live preview on the right.">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="views">
+  <div class="wrap">
+    <div class="head center rv">
+      <h2>Week, day, or list. Light or dark.</h2>
+      <p>Solid colour for every course, a red line for right now, and a sidebar that stays out of the way.</p>
+    </div>
+    <div class="controls rv">
+      <div class="seg" id="viewSeg" role="group" aria-label="View"><span class="thumb"></span>
+        <button aria-pressed="true" data-v="week">Week</button><button aria-pressed="false" data-v="day">Day</button><button aria-pressed="false" data-v="list">List</button>
+      </div>
+      <div class="seg" id="themeSeg" role="group" aria-label="Theme"><span class="thumb"></span>
+        <button aria-pressed="true" data-t="light">Light</button><button aria-pressed="false" data-t="dark">Dark</button>
+      </div>
+    </div>
+    <div class="shots rv">
+      <div class="win">
+        <div class="bar"><span class="dot"></span>Class Schedule — Sample term<span class="ctl"><span><svg viewBox="0 0 11 11"><path d="M0 5.5h11"/></svg></span><span><svg viewBox="0 0 11 11"><rect x=".5" y=".5" width="10" height="10"/></svg></span><span><svg viewBox="0 0 11 11"><path d="M0 0l11 11M11 0 0 11"/></svg></span></span></div>
+        <div class="frame" id="frame">
+          <img data-k="week-light" class="on" src="img/week-light.png" alt="Week view, light theme" width="1320" height="820">
+          <img data-k="day-light" src="img/day-light.png" alt="Day view, light theme" width="1320" height="820" loading="lazy">
+          <img data-k="list-light" src="img/list-light.png" alt="List view, light theme" width="1320" height="820" loading="lazy">
+          <img data-k="week-dark" src="img/week-dark.png" alt="Week view, dark theme" width="1320" height="820" loading="lazy">
+          <img data-k="day-dark" src="img/day-dark.png" alt="Day view, dark theme" width="1320" height="820" loading="lazy">
+          <img data-k="list-dark" src="img/list-dark.png" alt="List view, dark theme" width="1320" height="820" loading="lazy">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="settings" class="tour">
+  <div class="wrap">
+    <div class="head center rv">
+      <h2>Make it yours.</h2>
+      <p>A real Settings window, with a live preview, search, and a preference for just about everything. Scroll to see how it works.</p>
+    </div>
+  </div>
+  <div class="tour-track" id="tour" style="--n:7">
+    <div class="tour-sticky wrap">
+      <ol class="tour-steps" id="tourSteps">
+        <li tabindex="0" role="button" data-i="0" data-bar="Settings" data-tag="General"><span class="n">01</span><h3>Every preference, one window</h3><div class="more"><div><p>Sections down the side, a search box on top. Startup, closing, the clock, the first day of the week, how long a new class is, reminders, widget, backups: if it is a choice, it is here.</p></div></div><img class="inl" src="img/set-general.png" width="1320" height="800" alt="Every preference, one window" loading="lazy"></li>
+        <li tabindex="0" role="button" data-i="1" data-bar="Settings" data-tag="Calendar"><span class="n">02</span><h3>Change it, watch the week</h3><div class="more"><div><p>A live preview redraws as you click. Here: a 24-hour clock, a Sunday start, weekends always on, taller hours. Nothing to save, nothing to confirm.</p></div></div><img class="inl" src="img/set-calendar.png" width="1320" height="800" alt="Change it, watch the week" loading="lazy"></li>
+        <li tabindex="0" role="button" data-i="2" data-bar="Class Schedule — Sample term" data-tag="The result"><span class="n">03</span><h3>And the real app follows</h3><div class="more"><div><p>Close the window and the schedule is already that way: grid, cards, sidebar, side panel and the mini month, all on the new clock and week.</p></div></div><img class="inl" src="img/set-week-custom.png" width="1320" height="800" alt="And the real app follows" loading="lazy"></li>
+        <li tabindex="0" role="button" data-i="3" data-bar="Settings" data-tag="Appearance"><span class="n">04</span><h3>An accent and a palette of your own</h3><div class="more"><div><p>Five accents, three palettes for the sixteen course colours, text size, density, and which panels you want to see.</p></div></div><img class="inl" src="img/set-appearance.png" width="1320" height="800" alt="An accent and a palette of your own" loading="lazy"></li>
+        <li tabindex="0" role="button" data-i="4" data-bar="Class Schedule — Sample term" data-tag="Dark · Violet · Pastel"><span class="n">05</span><h3>Dark, violet, pastel</h3><div class="more"><div><p>The same week in a different mood. Light, dark, or follow Windows, with the colours softened or turned up.</p></div></div><img class="inl" src="img/set-week-violet.png" width="1320" height="800" alt="Dark, violet, pastel" loading="lazy"></li>
+        <li tabindex="0" role="button" data-i="5" data-bar="Settings" data-tag="Search"><span class="n">06</span><h3>Find anything</h3><div class="more"><div><p>Type “remind” and every setting that mentions it appears, with the section it lives in. Ctrl+F jumps to the box.</p></div></div><img class="inl" src="img/set-search.png" width="1320" height="800" alt="Find anything" loading="lazy"></li>
+        <li tabindex="0" role="button" data-i="6" data-bar="Settings" data-tag="Reset"><span class="n">07</span><h3>Back to square one, on purpose</h3><div class="more"><div><p>Reset a single group, or everything. Everything asks twice: the button turns red and waits for a second click. Your classes and term stay as they are.</p></div></div><img class="inl" src="img/set-reset.png" width="1320" height="800" alt="Back to square one, on purpose" loading="lazy"></li>
+      </ol>
+      <div class="tour-stage" aria-hidden="true">
+        <div class="win">
+          <div class="bar"><span class="dot"></span><span id="tourBar">Settings</span><span class="ctl"><span><svg viewBox="0 0 11 11"><path d="M0 5.5h11"/></svg></span><span><svg viewBox="0 0 11 11"><rect x=".5" y=".5" width="10" height="10"/></svg></span><span><svg viewBox="0 0 11 11"><path d="M0 0l11 11M11 0 0 11"/></svg></span></span></div>
+          <div class="tframe" id="tourFrame">
+            <img src="img/set-general.png" width="1320" height="800" alt="Every preference, one window" class="on">
+            <img src="img/set-calendar.png" width="1320" height="800" alt="Change it, watch the week" loading="lazy">
+            <img src="img/set-week-custom.png" width="1320" height="800" alt="And the real app follows" loading="lazy">
+            <img src="img/set-appearance.png" width="1320" height="800" alt="An accent and a palette of your own" loading="lazy">
+            <img src="img/set-week-violet.png" width="1320" height="800" alt="Dark, violet, pastel" loading="lazy">
+            <img src="img/set-search.png" width="1320" height="800" alt="Find anything" loading="lazy">
+            <img src="img/set-reset.png" width="1320" height="800" alt="Back to square one, on purpose" loading="lazy">
+          </div>
+        </div>
+        <span class="tour-tag" id="tourTag">General</span>
+        <div class="tour-dots" id="tourDots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="bulk">
+  <div class="wrap split">
+    <div class="copy rv">
+      <h2>Paste the whole semester. Done in ten seconds.</h2>
+      <p>Type classes the way you'd say them, or paste rows straight from your registrar's page or a spreadsheet. A live preview shows what was understood before anything is added.</p>
+      <div class="paste" aria-label="Example input">CS 101 Intro to Computing <i>MWF</i> <i>9:00-9:50</i> Room 204
+MATH 240, <i>Tue/Thu</i>, <i>10:30-11:45</i>, Hall B, Prof. Lee
+BIO 110 <i>Lab</i> <i>Th</i> <i>2-4:50pm</i> Science 3</div>
+      <ul class="ticks">
+        <li><svg viewBox="0 0 24 24"><path d="M5 12.5 10 17 19 7"/></svg><span><b>Guesses sensibly.</b> “1-2:15” is the afternoon, “9-9:50” is the morning.</span></li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 12.5 10 17 19 7"/></svg><span><b>Says what's wrong.</b> A line with no days or time is flagged, and the rest still import.</span></li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 12.5 10 17 19 7"/></svg><span><b>Skips duplicates</b> already in your schedule.</span></li>
+      </ul>
+    </div>
+    <div class="dlg rv" style="--d:.1s">
+      <div class="bar">Bulk add classes<span class="ctl"><span><svg viewBox="0 0 11 11"><path d="M0 0l11 11M11 0 0 11"/></svg></span></span></div>
+      <img src="img/bulk.png" width="972" height="626" alt="Bulk add dialog showing three classes ready, one skipped as a duplicate, and one needing attention." loading="lazy">
+    </div>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap split flip">
+    <div class="win rv">
+      <div class="bar"><span class="dot"></span>Class Schedule<span class="ctl"><span><svg viewBox="0 0 11 11"><path d="M0 5.5h11"/></svg></span><span><svg viewBox="0 0 11 11"><rect x=".5" y=".5" width="10" height="10"/></svg></span><span><svg viewBox="0 0 11 11"><path d="M0 0l11 11M11 0 0 11"/></svg></span></span></div>
+      <img src="img/empty.png" width="1280" height="786" alt="The first-run screen: Build your schedule, with buttons to paste classes, import a file, add one class, or try a sample." loading="lazy">
+    </div>
+    <div class="copy rv" style="--d:.1s">
+      <h2>Starting from nothing is the easy part.</h2>
+      <p>The first screen is a single question: how do you want to get your classes in? Paste them, import a <span class="mono">.csv</span> or <span class="mono">.ics</span>, add one by hand, or load a sample to look around.</p>
+    </div>
+  </div>
+</section>
+
+<section id="features" style="padding-top:0">
+  <div class="wrap">
+    <div class="head rv"><h2>Small things, done properly.</h2></div>
+    <div class="grid">
+      <article class="card wide rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0zM12 7.5V12l3 2"/></svg></div>
+        <h3>Click a class, see everything</h3>
+        <p>Days, time, room and instructor in one calm popover. Right-click any slot, class or day for quick actions, and every delete comes with an Undo.</p>
+        <div class="pic"><picture><source srcset="img/popup-dark-crop.png" media="(prefers-color-scheme: dark)"><img src="img/popup-light-crop.png" width="700" height="420" alt="Class details popover for CALC BC, taught by Harry Y." loading="lazy"></picture></div>
+      </article>
+      <article class="card mid rv" style="--d:.08s">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+        <h3>One Create button</h3>
+        <p>A class, a pasted batch, or an assignment or exam. All on the keyboard too: <span class="mono">Ctrl+N</span>, <span class="mono">Ctrl+B</span>, <span class="mono">Ctrl+T</span>.</p>
+        <div class="pic"><img src="img/create-crop.png" width="480" height="300" alt="The Create menu." loading="lazy"></div>
+      </article>
+      <article class="card full rv">
+        <div>
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"/></svg></div>
+          <h3>Today, on your desktop</h3>
+          <p>An optional widget that sits quietly behind your other windows and shows today's classes, what's next, and what's due. Drag it anywhere, and it remembers the spot.</p>
+          <p style="margin-top:10px">Close the app window and it keeps running. Right-click the widget to open the app or quit. It's off until you switch it on in Settings.</p>
+        </div>
+        <div class="pair">
+          <img src="img/widget-light.png" width="400" height="440" alt="The Today's schedule desktop widget, light theme." loading="lazy">
+          <img src="img/widget-dark.png" width="400" height="440" alt="The Today's schedule desktop widget, dark theme." loading="lazy">
+        </div>
+      </article>
+      <article class="card rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/></svg></div>
+        <h3>Reminders</h3>
+        <p>A nudge before each class, and before assignments and exams are due, while the app or its widget is running. You pick how early.</p>
+      </article>
+      <article class="card rv" style="--d:.08s">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M5 12.5 10 17 19 7"/></svg></div>
+        <h3>Assignments and exams</h3>
+        <p>“Coming up” lists what's due in the next two weeks. Overdue items turn red; tick them off when done.</p>
+      </article>
+      <article class="card rv" style="--d:.16s">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M5 15v4h14v-4"/></svg></div>
+        <h3>Import and export</h3>
+        <p>Bring in a CSV or .ics. Export an .ics to open in Google Calendar, Outlook or Apple Calendar.</p>
+      </article>
+      <article class="card mid rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 8h16M4 16h16M9 5v6M15 13v6"/></svg></div>
+        <h3>Your terms, your look</h3>
+        <p>Term dates, reminders, clock, week start, accent, density and more. <a href="#settings">See how Settings works</a>.</p>
+        <div class="pic"><img src="img/set-appearance.png" width="1272" height="756" alt="The Settings window in the dark theme with a violet accent." loading="lazy"></div>
+      </article>
+      <article class="card wide rv" style="--d:.08s">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11zM12 12a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6z"/></svg></div>
+        <h3>It lives on your computer</h3>
+        <p>No sign-in and no server. Your schedule is one JSON file, in <span class="mono">%APPDATA%\ClassSchedule</span> by default. Use <b>Save schedule as…</b> to keep it anywhere, like <span class="mono">D:\</span> or a synced folder, and <b>Open schedule file…</b> to switch between terms.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="download" style="padding-top:0">
+  <div class="wrap">
+    <div class="get rv">
+      <div>
+        <h2>Get Class Schedule for Windows</h2>
+        <p class="sub">One file. Download it, double-click it, and add your first class.</p>
+        <div class="reqs"><span>Windows 10 (1809+) or 11</span><span>64-bit</span><span>Free</span><span>No account</span></div>
+        <div class="note"><svg viewBox="0 0 24 24"><path d="M12 3 3 19h18zM12 10v4M12 17v.01"/></svg><span><b>Windows may show a blue “protected your PC” screen.</b> The app isn't code-signed. Choose <i>More info</i>, then <i>Run anyway</i>. You can check the SHA-256 below against the file you downloaded first.</span></div>
+      </div>
+      <div class="opts">
+        <div class="opt main">
+          <h3>Standalone <span style="font-weight:500;color:var(--ink3)">· 69 MB</span></h3>
+          <p>Everything included. Works on a fresh Windows install.</p>
+          <a class="btn primary" href="download/ClassSchedule.exe" download><svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 11 12 15.5 16.5 11M5 19h14"/></svg>Download .exe</a>
+          <div class="sum"><span>SHA-256</span><code id="h1">3d65d57c4e703028ffc1e0f8ab17ebc29f0b879031222bf56852d8224e9664d7</code><button data-copy="h1">Copy</button></div>
+        </div>
+        <div class="opt">
+          <h3>Small zip <span style="font-weight:500;color:var(--ink3)">· 6 MB</span></h3>
+          <p>Needs the free <a href="https://dotnet.microsoft.com/download/dotnet/8.0" target="_blank" rel="noopener">.NET 8 Desktop Runtime</a>. Unzip and run.</p>
+          <a class="btn ghost" href="download/ClassSchedule-needs-dotnet8.zip" download>Download .zip</a>
+          <div class="sum"><span>SHA-256</span><code id="h2">a39f506567e2a80f40359460b2203ca9b6c0119139c7502f398674dcd34ea1bc</code><button data-copy="h2">Copy</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Class Schedule · built with WPF on .NET 8</span>
+    <span>Screenshots are the real app, captured while running under Wine.</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var nav = document.getElementById('nav');
+  var onScroll = function () { nav.classList.toggle('scrolled', window.scrollY > 8); };
+  onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
+
+  var view = 'week', theme = 'light';
+  var frame = document.getElementById('frame');
+  function show() {
+    var key = view + '-' + theme;
+    frame.querySelectorAll('img').forEach(function (img) { img.classList.toggle('on', img.dataset.k === key); });
+  }
+  function bind(id, attr, set) {
+    var seg = document.getElementById(id), thumb = seg.querySelector('.thumb'), btns = seg.querySelectorAll('button');
+    btns.forEach(function (b, i) {
+      b.addEventListener('click', function () {
+        btns.forEach(function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
+        thumb.style.transform = 'translateX(' + b.offsetLeft + 'px)';
+        set(b.dataset[attr]); show();
+      });
+    });
+    window.addEventListener('resize', function () {
+      var on = seg.querySelector('[aria-pressed="true"]'); thumb.style.transform = 'translateX(' + on.offsetLeft + 'px)';
+    });
+  }
+  bind('viewSeg', 'v', function (v) { view = v; });
+  bind('themeSeg', 't', function (t) { theme = t; });
+  if (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) document.querySelector('#themeSeg [data-t="dark"]').click();
+
+  document.querySelectorAll('[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var el = document.getElementById(b.dataset.copy);
+      var done = function () { b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1400); };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(el.textContent).then(done, function () { select(el); });
+      else select(el);
+    });
+  });
+  function select(el) { var r = document.createRange(); r.selectNodeContents(el); var s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+  var track = document.getElementById('tour');
+  if (track && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) (function () {
+    var steps = [].slice.call(document.querySelectorAll('#tourSteps li'));
+    var imgs = [].slice.call(document.querySelectorAll('#tourFrame img'));
+    var dots = [].slice.call(document.querySelectorAll('#tourDots i'));
+    var list = document.getElementById('tourSteps'), bar = document.getElementById('tourBar'), tag = document.getElementById('tourTag');
+    var sticky = track.querySelector('.tour-sticky'), n = steps.length, cur = -1, queued = false;
+    function travel() { return Math.max(1, track.offsetHeight - sticky.offsetHeight); }
+    function set(i) {
+      if (i === cur) return;
+      cur = i;
+      steps.forEach(function (s, k) { s.classList.toggle('on', k === i); });
+      imgs.forEach(function (m, k) { m.classList.toggle('on', k === i); });
+      dots.forEach(function (d, k) { d.classList.toggle('on', k === i); });
+      tag.classList.add('swap');
+      setTimeout(function () { bar.textContent = steps[i].dataset.bar; tag.textContent = steps[i].dataset.tag; tag.classList.remove('swap'); }, 180);
+    }
+    function frame() {
+      queued = false;
+      var top = track.getBoundingClientRect().top - parseFloat(getComputedStyle(sticky).top);
+      var p = Math.min(.9999, Math.max(0, -top / travel()));
+      var i = Math.floor(p * n), local = p * n - i;
+      set(i);
+      list.style.setProperty('--p', ((i + .5 + (local - .5) * .6) / n).toFixed(4));
+      sticky.querySelector('.win').style.setProperty('--ty', ((local - .5) * -10).toFixed(2) + 'px');
+    }
+    function request() { if (!queued) { queued = true; requestAnimationFrame(frame); } }
+    window.addEventListener('scroll', request, { passive: true });
+    window.addEventListener('resize', request);
+    steps.forEach(function (s, k) {
+      function go() { window.scrollTo({ top: track.getBoundingClientRect().top + window.scrollY - parseFloat(getComputedStyle(sticky).top) + (k + .5) / n * travel() }); }
+      s.addEventListener('click', go);
+      s.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    });
+    frame();
+  })();
+
+  var io = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: .12, rootMargin: '0px 0px -6% 0px' }) : null;
+  document.querySelectorAll('.rv').forEach(function (el) { io ? io.observe(el) : el.classList.add('in'); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<Window x:Class="ClassSchedule.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="clr-namespace:ClassSchedule.Views"
+        Title="Class Schedule" Width="1320" Height="820" MinWidth="980" MinHeight="620"
+        WindowStartupLocation="CenterScreen" UseLayoutRounding="True" FontSize="13"
+        Background="{DynamicResource Brush.Canvas}" Foreground="{DynamicResource Brush.Ink}"
+        FontFamily="{DynamicResource Font.Body}">
+    <Grid x:Name="Root">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="64" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="8,0,16,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="256" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="MenuButton" Style="{StaticResource IconBtn}" Click="OnToggleSidebar" ToolTip="Show or hide the sidebar" AutomationProperties.Name="Main menu">
+                    <v:Icon Key="Icon.Menu" Width="20" Height="20" />
+                </Button>
+                <Border Width="30" Height="30" CornerRadius="8" Margin="8,0,0,0" Background="{DynamicResource Brush.Primary}">
+                    <v:Icon Key="Icon.Calendar" BrushKey="Brush.OnPrimary" Width="17" Height="17" />
+                </Border>
+                <TextBlock Text="Class Schedule" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="21"
+                           FontFamily="{DynamicResource Font.Display}" Foreground="{DynamicResource Brush.Ink2}" />
+                <TextBlock x:Name="TermLabel" Visibility="Collapsed" />
+            </StackPanel>
+
+            <StackPanel x:Name="NavGroup" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Style="{StaticResource BtnSecondary}" Content="Today" Padding="22,0" Click="OnToday" />
+                <Button Style="{StaticResource IconBtn}" Click="OnPrev" ToolTip="Previous (Ctrl+Left)" AutomationProperties.Name="Previous" Margin="12,0,0,0">
+                    <v:Icon Key="Icon.ChevL" Width="20" Height="20" />
+                </Button>
+                <Button Style="{StaticResource IconBtn}" Click="OnNext" ToolTip="Next (Ctrl+Right)" AutomationProperties.Name="Next" Margin="2,0,0,0">
+                    <v:Icon Key="Icon.ChevR" Width="20" Height="20" />
+                </Button>
+                <TextBlock x:Name="DateLabel" Margin="14,0,0,0" VerticalAlignment="Center" FontFamily="{DynamicResource Font.Display}"
+                           FontSize="22" Foreground="{DynamicResource Brush.Ink}" />
+                <TextBlock x:Name="WeekCount" Margin="14,3,0,0" VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource Brush.Ink3}" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                <Border x:Name="Tabs" Height="40" CornerRadius="20" BorderThickness="1" BorderBrush="{DynamicResource Brush.LineStrong}">
+                    <Grid Margin="-1">
+                        <Border x:Name="SegThumb" Width="68" Height="38" CornerRadius="19" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="1,0,0,0"
+                                Background="{DynamicResource Brush.Container}">
+                            <Border.RenderTransform>
+                                <TranslateTransform x:Name="SegMove" />
+                            </Border.RenderTransform>
+                        </Border>
+                        <UniformGrid Columns="3" Margin="1,0,0,0" VerticalAlignment="Center">
+                            <ToggleButton x:Name="WeekButton" Content="Week" Style="{StaticResource SegButton}" Click="OnViewClick" />
+                            <ToggleButton x:Name="DayButton" Content="Day" Style="{StaticResource SegButton}" Click="OnViewClick" />
+                            <ToggleButton x:Name="ListButton" Content="List" Style="{StaticResource SegButton}" Click="OnViewClick" />
+                        </UniformGrid>
+                    </Grid>
+                </Border>
+                <Button x:Name="MoreButton" Style="{StaticResource IconBtn}" Margin="10,0,0,0" Click="OnMore" ToolTip="More" AutomationProperties.Name="More">
+                    <v:Icon Key="Icon.Dots" Width="20" Height="20" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1" Margin="0,0,16,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="SidebarColumn" Width="256" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition x:Name="RailColumn" Width="300" />
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer x:Name="SidebarScroll" VerticalScrollBarVisibility="Auto" Focusable="False">
+                <StackPanel Margin="16,6,12,12">
+                    <Button x:Name="CreateButton" Style="{StaticResource CreateBtn}" HorizontalAlignment="Left" Click="OnCreate" ToolTip="Add a class (Ctrl+N)">
+                        <StackPanel Orientation="Horizontal">
+                            <v:Icon Key="Icon.Plus" Width="22" Height="22" />
+                            <TextBlock Text="Create" Margin="12,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <StackPanel x:Name="SidebarPanel" Margin="0,22,0,0" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border x:Name="MainPanel" Grid.Column="1" Style="{StaticResource Panel}" ClipToBounds="True">
+                <Border x:Name="MainHost" ClipToBounds="True" />
+            </Border>
+
+            <ScrollViewer x:Name="RailScroll" Grid.Column="2" VerticalScrollBarVisibility="Auto" Padding="12,0,0,0" Focusable="False">
+                <StackPanel x:Name="SidePanel" />
+            </ScrollViewer>
+        </Grid>
+
+        <Border x:Name="ToastHost" Grid.RowSpan="2" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="24,0,0,28"
+                Visibility="Collapsed" CornerRadius="8" Padding="18,12,18,12" MaxWidth="560" Background="{DynamicResource Brush.Snack}">
+            <StackPanel Orientation="Horizontal">
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock x:Name="ToastTitle" FontWeight="Medium" Foreground="{DynamicResource Brush.OnSnack}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="ToastBody" Foreground="{DynamicResource Brush.OnSnack}" Opacity="0.75" TextWrapping="Wrap" Margin="0,2,0,0" />
+                </StackPanel>
+                <Button x:Name="ToastAction" Style="{StaticResource BtnQuiet}" Foreground="{DynamicResource Brush.SnackAction}" Height="32" Margin="18,-6,-8,-6"
+                        Padding="14,0" FontWeight="SemiBold" Visibility="Collapsed" Click="OnToastAction" />
+            </StackPanel>
+        </Border>
+
+        <Popup x:Name="DetailPopup" StaysOpen="False" AllowsTransparency="True" Placement="Right" PopupAnimation="Fade" Closed="OnDetailClosed" />
+
+        <Popup x:Name="CreatePopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PlacementTarget="{Binding ElementName=CreateButton}"
+               HorizontalOffset="-8" VerticalOffset="-2" PopupAnimation="Fade">
+            <Border Style="{StaticResource Popover}" Padding="8" Width="248" Margin="8">
+                <StackPanel>
+                    <Button Style="{StaticResource MenuItem}" Click="OnCreateClass" HorizontalContentAlignment="Stretch">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal"><v:Icon Key="Icon.Plus" Width="18" Height="18" /><TextBlock Text="Class" Margin="12,0,0,0" /></StackPanel>
+                            <TextBlock Text="Ctrl+N" HorizontalAlignment="Right" Foreground="{DynamicResource Brush.Ink4}" FontSize="12" />
+                        </Grid>
+                    </Button>
+                    <Button Style="{StaticResource MenuItem}" Click="OnBulkAdd" HorizontalContentAlignment="Stretch">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal"><v:Icon Key="Icon.Rows" Width="18" Height="18" /><TextBlock Text="Paste many classes" Margin="12,0,0,0" /></StackPanel>
+                            <TextBlock Text="Ctrl+B" HorizontalAlignment="Right" Foreground="{DynamicResource Brush.Ink4}" FontSize="12" />
+                        </Grid>
+                    </Button>
+                    <Button Style="{StaticResource MenuItem}" Click="OnAddTask" HorizontalContentAlignment="Stretch">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal"><v:Icon Key="Icon.Check" Width="18" Height="18" /><TextBlock Text="Assignment or exam" Margin="12,0,0,0" /></StackPanel>
+                            <TextBlock Text="Ctrl+T" HorizontalAlignment="Right" Foreground="{DynamicResource Brush.Ink4}" FontSize="12" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <Popup x:Name="MorePopup" StaysOpen="False" AllowsTransparency="True" Placement="Bottom" PlacementTarget="{Binding ElementName=MoreButton}"
+               HorizontalOffset="-208" VerticalOffset="-2" PopupAnimation="Fade">
+            <Border Style="{StaticResource Popover}" Padding="8" Width="248" Margin="8">
+                <StackPanel>
+                    <Button Style="{StaticResource MenuItem}" Click="OnImport">
+                        <StackPanel Orientation="Horizontal"><v:Icon Key="Icon.Import" Width="18" Height="18" /><TextBlock Text="Import CSV or .ics…" Margin="12,0,0,0" /></StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource MenuItem}" Click="OnExport">
+                        <StackPanel Orientation="Horizontal"><v:Icon Key="Icon.Export" Width="18" Height="18" /><TextBlock Text="Export to calendar…" Margin="12,0,0,0" /></StackPanel>
+                    </Button>
+                    <Border Height="1" Margin="4,6" Background="{DynamicResource Brush.Line}" />
+                    <Button Style="{StaticResource MenuItem}" Click="OnOpenFile">
+                        <StackPanel Orientation="Horizontal"><v:Icon Key="Icon.Folder" Width="18" Height="18" /><TextBlock Text="Open schedule file…" Margin="12,0,0,0" /></StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource MenuItem}" Click="OnSaveAs">
+                        <StackPanel Orientation="Horizontal"><v:Icon Key="Icon.Save" Width="18" Height="18" /><TextBlock Text="Save schedule as…" Margin="12,0,0,0" /></StackPanel>
+                    </Button>
+                    <Border Height="1" Margin="4,6" Background="{DynamicResource Brush.Line}" />
+                    <Button Style="{StaticResource MenuItem}" Click="OnClear">
+                        <StackPanel Orientation="Horizontal"><v:Icon Key="Icon.Trash" Width="18" Height="18" /><TextBlock Text="Clear schedule…" Margin="12,0,0,0" /></StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource MenuItem}" Click="OnSettings">
+                        <StackPanel Orientation="Horizontal"><v:Icon Key="Icon.Sliders" Width="18" Height="18" /><TextBlock Text="Settings…" Margin="12,0,0,0" /></StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource MenuItem}" Click="OnQuit" HorizontalContentAlignment="Stretch">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal"><v:Icon Key="Icon.Close" Width="18" Height="18" /><TextBlock Text="Quit" Margin="12,0,0,0" /></StackPanel>
+                            <TextBlock Text="Ctrl+Q" HorizontalAlignment="Right" Foreground="{DynamicResource Brush.Ink4}" FontSize="12" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Popup>
+    </Grid>
+</Window>

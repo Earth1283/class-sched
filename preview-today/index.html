@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today's Schedule Preview</title>
+<style>
+:root {
+  --bg: #f8fafd; --panel: #ffffff; --soft: #f1f4f9; --pop: #edf2fa; --line: #dadce0; --strong: #747775;
+  --ink: #1f1f1f; --ink2: #444746; --ink3: #5f6368; --ink4: #80868b;
+  --primary: #0b57d0; --on-primary: #fff; --container: #c2e7ff; --on-container: #001d35; --now: #d93025;
+  --blue: #039be5; --green: #33b679; --orange: #ef6c00; --on-event: #fff;
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --ease: cubic-bezier(.2,.7,.2,1);
+}
+.dark {
+  --bg: #0b0b0c; --panel: #131314; --soft: #1b1b1c; --pop: #1e1f20; --line: #303134; --strong: #8e918f;
+  --ink: #e3e3e3; --ink2: #c4c7c5; --ink3: #9aa0a6; --ink4: #80868b;
+  --primary: #a8c7fa; --on-primary: #062e6f; --container: #004a77; --on-container: #c2e7ff; --now: #f28b82;
+  --blue: #74c0ee; --green: #6cc49a; --orange: #f5a25d; --on-event: #1b1b1b;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #eef1f6; color: #1f1f1f; font: 14px/1.5 var(--font); }
+@media (prefers-color-scheme: dark) { body { background: #0e0f11; color: #e3e3e3; } .page-note, .tabs button { color: #c4c7c5; } .rail, .tabs { --x: 0; } }
+.page { width: min(1240px, 100% - 32px); margin: 0 auto; padding: 28px 0 60px; }
+h1 { font-size: 26px; font-weight: 600; letter-spacing: -.02em; margin: 0 0 4px; }
+.page-note { color: #5f6368; margin: 0 0 22px; max-width: 70ch; }
+.tabs { display: inline-flex; border: 1px solid #747775; border-radius: 999px; margin-bottom: 18px; }
+.tabs button { border: 0; background: transparent; font: 500 14px var(--font); padding: 0 20px; height: 40px; border-radius: 999px; cursor: pointer; color: #1f1f1f; transition: background .3s var(--ease); }
+.tabs button[aria-selected="true"] { background: #c2e7ff; color: #001d35; font-weight: 600; }
+.layout { display: grid; grid-template-columns: 1fr 330px; gap: 20px; align-items: start; }
+@media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
+
+/* scene */
+.scene { position: relative; border-radius: 18px; overflow: hidden; aspect-ratio: 16 / 10; box-shadow: 0 1px 2px rgba(0,0,0,.15), 0 20px 60px rgba(30,40,90,.22); isolation: isolate; }
+.wall { position: absolute; inset: 0; background:
+  radial-gradient(60% 70% at 18% 20%, #8fb6f5 0, transparent 60%),
+  radial-gradient(50% 60% at 85% 30%, #c9b6f0 0, transparent 62%),
+  radial-gradient(70% 70% at 60% 95%, #86d3c8 0, transparent 60%), #b8c9ee; }
+.scene.dark .wall { background:
+  radial-gradient(60% 70% at 18% 20%, #26407a 0, transparent 60%),
+  radial-gradient(50% 60% at 85% 30%, #45306b 0, transparent 62%),
+  radial-gradient(70% 70% at 60% 95%, #1b4d47 0, transparent 60%), #10131f; }
+.icons { position: absolute; left: 18px; top: 18px; display: grid; gap: 18px; z-index: 1; }
+.icons i { display: grid; justify-items: center; gap: 4px; font-style: normal; font-size: 11px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.5); }
+.icons i::before { content: ""; width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.88); box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.taskbar { position: absolute; left: 0; right: 0; bottom: 0; height: 44px; background: rgba(243,246,251,.82); backdrop-filter: blur(16px); display: flex; justify-content: center; align-items: center; gap: 10px; z-index: 6; border-top: 1px solid rgba(0,0,0,.08); }
+.scene.dark .taskbar { background: rgba(28,30,34,.85); border-color: rgba(255,255,255,.06); }
+.taskbar span { width: 26px; height: 26px; border-radius: 7px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.taskbar span:nth-child(2) { background: #c2e7ff; } .taskbar span:nth-child(4) { background: #ffe0b2; }
+.taskbar span.app { background: var(--primary); display: grid; place-items: center; }
+.taskbar span.app::after { content: ""; width: 12px; height: 12px; border: 1.6px solid var(--on-primary); border-radius: 3px; }
+.clock { position: absolute; right: 16px; font-size: 11px; line-height: 1.2; text-align: right; color: #333; }
+.scene.dark .clock { color: #ddd; }
+
+.win { position: absolute; background: #fff; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.28); overflow: hidden; z-index: 3; color: #222; font-size: 12px; }
+.win .tb { height: 28px; background: #f3f3f3; display: flex; align-items: center; padding-left: 10px; gap: 8px; color: #444; }
+.win .body { padding: 14px 16px; display: grid; gap: 7px; }
+.win .body b { display: block; height: 8px; border-radius: 4px; background: #e6e8ec; }
+.scene.dark .win { background: #202124; color: #ddd; } .scene.dark .win .tb { background: #2a2b2e; color: #bbb; } .scene.dark .win .body b { background: #35373b; }
+#otherWin { left: 28%; top: 32%; width: 52%; height: 50%; }
+.scene[data-front="widget"] .win { z-index: 2; }
+
+/* desktop widget */
+.widget { position: absolute; right: 4.5%; top: 7%; width: 296px; border-radius: 20px; background: color-mix(in srgb, var(--panel) calc(var(--op, 94) * 1%), transparent); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.16), 0 14px 40px rgba(0,0,0,.22); z-index: 2; padding: 18px 18px 16px; transition: opacity .3s var(--ease), transform .5s var(--ease); backdrop-filter: blur(18px); }
+.scene[data-front="widget"] .widget { z-index: 5; }
+.scene.hidden-widget .widget { opacity: 0; transform: translateY(12px) scale(.98); pointer-events: none; }
+.grip { position: absolute; top: 8px; left: 50%; width: 30px; height: 4px; margin-left: -15px; border-radius: 2px; background: var(--line); }
+.whead { display: flex; align-items: baseline; justify-content: space-between; margin-top: 4px; }
+.cap { font-size: 12px; font-weight: 500; color: var(--ink3); }
+.wdate { font-size: 22px; letter-spacing: -.01em; font-weight: 500; margin: 0; }
+.rows { display: grid; gap: 6px; margin-top: 12px; }
+.row { display: grid; grid-template-columns: 58px 1fr; gap: 10px; padding: 8px 10px; border-radius: 12px; align-items: start; }
+.row .t { font-size: 12px; color: var(--ink3); padding-top: 1px; }
+.row .n { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.row .n i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.row .s { font-size: 12.5px; color: var(--ink3); margin-top: 1px; }
+.row.now { background: var(--soft); }
+.row.now .t { color: var(--now); font-weight: 600; }
+.bar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 8px; overflow: hidden; }
+.bar b { display: block; height: 100%; width: 38%; background: var(--green); border-radius: 2px; }
+.left { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink3); margin-top: 5px; }
+.wfoot { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink3); display: flex; justify-content: space-between; gap: 8px; }
+.wfoot b { color: var(--ink); font-weight: 600; }
+.compact .row { padding: 5px 8px; } .compact .row .s { display: none; } .compact .wdate { font-size: 18px; } .compact .widget { width: 262px; padding: 14px 14px 12px; } .compact .bar, .compact .left { display: none; }
+
+/* docked scene */
+.dock { position: absolute; inset: 0; background: var(--bg); }
+.dock .app { position: absolute; inset: 26px 6% 0; border-radius: 12px 12px 0 0; background: var(--bg); box-shadow: 0 8px 40px rgba(0,0,0,.25); overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--line); }
+.dock .app .tb { height: 30px; flex: none; background: var(--soft); border-bottom: 1px solid var(--line); display: flex; align-items: center; padding-left: 12px; gap: 8px; font-size: 12px; color: var(--ink2); }
+.dock .shot { flex: 1; min-height: 0; overflow: hidden; position: relative; }
+.dock .shot img { width: 100%; display: block; }
+.strip { flex: none; background: var(--panel); border-top: 1px solid var(--line); padding: 10px 16px 12px; transition: height .5s var(--ease); }
+.strip .hd { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.strip .hd b { font-weight: 600; font-size: 14px; }
+.strip .hd .cap { margin-left: 2px; }
+.strip .hd .x { margin-left: auto; width: 28px; height: 28px; border-radius: 50%; border: 0; background: transparent; color: var(--ink3); cursor: pointer; }
+.strip .hd .x:hover { background: var(--soft); }
+.track { position: relative; height: 64px; border-radius: 12px; background: var(--soft); overflow: hidden; }
+.track .hr { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); font-size: 10px; color: var(--ink4); padding: 3px 0 0 4px; }
+.track .ev { position: absolute; top: 18px; bottom: 6px; border-radius: 8px; color: var(--on-event); padding: 4px 8px; font-size: 11.5px; line-height: 1.25; overflow: hidden; }
+.track .ev b { display: block; font-weight: 600; }
+.track .nowline { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--now); }
+.track .nowline::before { content: ""; position: absolute; top: -1px; left: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--now); }
+.scene.nostrip .strip { display: none; }
+
+/* side rail */
+.rail { display: grid; gap: 16px; }
+.card { background: #fff; border: 1px solid #dadce0; border-radius: 20px; padding: 20px; }
+@media (prefers-color-scheme: dark) { .card { background: #131314; border-color: #303134; color: #e3e3e3; } .card .sub, .field small { color: #9aa0a6; } .card .ctl { border-color: #8e918f; } }
+.card h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+.card .sub { color: #5f6368; font-size: 13px; margin: 2px 0 14px; }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; background: #c2e7ff; color: #001d35; border-radius: 999px; padding: 1px 9px; margin-left: 8px; vertical-align: 2px; }
+.field { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 0; border-top: 1px solid rgba(128,128,128,.22); }
+.field:first-of-type { border-top: 0; }
+.field label { font-weight: 500; display: block; }
+.field small { display: block; color: #5f6368; font-size: 12px; line-height: 1.35; margin-top: 1px; max-width: 30ch; }
+.sw { position: relative; width: 44px; height: 26px; flex: none; }
+.sw input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.sw span { position: absolute; inset: 0; border-radius: 999px; border: 2px solid #747775; transition: background .25s, border-color .25s; }
+.sw span::after { content: ""; position: absolute; top: 4px; left: 4px; width: 14px; height: 14px; border-radius: 50%; background: #747775; transition: transform .35s var(--ease), background .25s, width .2s, height .2s, top .2s; }
+.sw input:checked + span { background: #0b57d0; border-color: #0b57d0; }
+.sw input:checked + span::after { transform: translateX(18px); background: #fff; width: 18px; height: 18px; top: 2px; }
+.sw input:focus-visible + span { outline: 2px solid #0b57d0; outline-offset: 2px; }
+.mini { display: inline-flex; border: 1px solid #747775; border-radius: 999px; }
+.mini button { border: 0; background: transparent; padding: 0 12px; height: 30px; border-radius: 999px; font: 500 13px var(--font); cursor: pointer; color: inherit; }
+.mini button[aria-pressed="true"] { background: #c2e7ff; color: #001d35; font-weight: 600; }
+input[type=range] { width: 120px; accent-color: #0b57d0; }
+.notes { font-size: 13px; color: #5f6368; display: grid; gap: 8px; }
+.notes p { margin: 0; } .notes b { color: inherit; font-weight: 600; }
+@media (prefers-color-scheme: dark) { .notes, .page-note { color: #9aa0a6; } }
+.is-off { opacity: .45; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Today's Schedule, as the bottom-most window</h1>
+  <p class="page-note">A preview of two ways to read that, with the new setting that controls it. Nothing is built yet. Try the switches on the right.</p>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="desktop">A · Desktop widget, behind everything</button>
+    <button role="tab" aria-selected="false" data-tab="dock">B · Docked strip in the main window</button>
+  </div>
+
+  <div class="layout">
+    <div>
+      <!-- A -->
+      <div class="scene" id="sceneA" data-front="window">
+        <div class="wall"></div>
+        <div class="icons"><i>Recycle Bin</i><i>Notes</i></div>
+
+        <div class="win" id="otherWin">
+          <div class="tb"><span>●</span> Lab report — Document</div>
+          <div class="body"><b style="width:82%"></b><b style="width:94%"></b><b style="width:70%"></b><b style="width:88%"></b><b style="width:60%"></b><b style="width:91%"></b><b style="width:76%"></b></div>
+        </div>
+
+        <div class="widget" id="widget">
+          <span class="grip"></span>
+          <div class="whead"><div><div class="cap">Today</div><h3 class="wdate">Tue, Oct 20</h3></div><div class="cap">3 classes</div></div>
+          <div class="rows">
+            <div class="row now"><div class="t">10:30</div><div>
+              <div class="n"><i style="background:var(--green)"></i>MATH 240 Lecture</div>
+              <div class="s">Hall B 112 · Prof. Ada Okafor</div>
+              <div class="bar"><b></b></div><div class="left"><span>10:30 AM</span><span>53m left</span></div>
+            </div></div>
+            <div class="row"><div class="t">1:00 PM</div><div><div class="n"><i style="background:var(--orange)"></i>PHYS 110 Lecture</div><div class="s">Science 12</div></div></div>
+            <div class="row"><div class="t">3:00 PM</div><div><div class="n"><i style="background:var(--blue)"></i>CS 201 Recitation</div><div class="s">Engineering Hall 118</div></div></div>
+          </div>
+          <div class="wfoot"><span>Next due</span><span><b>Problem set 5</b> · Sun 11:59 PM</span></div>
+        </div>
+
+        <div class="taskbar"><span></span><span></span><span class="app"></span><span></span><div class="clock">10:52 AM<br>10/20/2026</div></div>
+      </div>
+
+      <!-- B -->
+      <div class="scene" id="sceneB" style="display:none">
+        <div class="dock">
+          <div class="app">
+            <div class="tb"><span style="width:12px;height:12px;border-radius:3px;background:var(--primary)"></span>Class Schedule — Sample term</div>
+            <div class="shot"><img src="week-light.png" alt="Week view"></div>
+            <div class="strip" id="strip">
+              <div class="hd"><b>Today's schedule</b><span class="cap">Tue, Oct 20 · 3 classes · next: PHYS 110 in 2h 8m</span><button class="x" aria-label="Hide strip">✕</button></div>
+              <div class="track" id="track"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="rail">
+      <div class="card" id="settings">
+        <h2>Settings <span class="badge">New</span></h2>
+        <p class="sub">Preferences → Today's schedule</p>
+
+        <div class="field"><div><label for="optShow">Show Today's schedule</label><small id="showHelp">A small widget with today's classes that stays on the desktop.</small></div><span class="sw"><input id="optShow" type="checkbox" checked><span></span></span></div>
+        <div id="opts">
+          <div class="field" id="rowBehind"><div><label for="optBehind">Keep it behind other windows</label><small>It never covers your work. Other windows sit on top of it.</small></div><span class="sw"><input id="optBehind" type="checkbox" checked><span></span></span></div>
+          <div class="field" id="rowKeep"><div><label for="optKeep">Keep it after I close the app</label><small>Closing the main window leaves the widget running in the background.</small></div><span class="sw"><input id="optKeep" type="checkbox"><span></span></span></div>
+          <div class="field"><div><label>Size</label></div><div class="mini" id="size"><button aria-pressed="true" data-s="comfortable">Comfortable</button><button aria-pressed="false" data-s="compact">Compact</button></div></div>
+          <div class="field"><div><label for="optOp">Opacity</label></div><input id="optOp" type="range" min="55" max="100" value="94"></div>
+          <div class="field"><div><label>Theme</label></div><div class="mini" id="theme"><button aria-pressed="true" data-t="light">Light</button><button aria-pressed="false" data-t="dark">Dark</button></div></div>
+        </div>
+      </div>
+
+      <div class="card notes" id="notesA">
+        <b style="font-size:15px">How A would work</b>
+        <p><b>Position:</b> drag it anywhere; it remembers where you left it, and which screen.</p>
+        <p><b>No taskbar button</b>, and it stays out of Alt+Tab.</p>
+        <p><b>Live:</b> the “now” row and progress bar update every 30 seconds, and it rolls over at midnight.</p>
+        <p><b>Limits:</b> it lives inside the app, so quitting the app removes it unless “Keep it after I close the app” is on. <b>Win+D</b> (Show desktop) may hide it on some Windows versions.</p>
+      </div>
+      <div class="card notes" id="notesB" style="display:none">
+        <b style="font-size:15px">How B would work</b>
+        <p>A timeline strip along the bottom of the main window: today's classes laid out by time, with a red “now” line.</p>
+        <p>The ✕ hides it, and the setting brings it back. The week grid above simply gets a little shorter.</p>
+        <p>It only shows while the main window is open, and it can't sit behind other apps.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var sceneA = $('#sceneA'), sceneB = $('#sceneB'), widget = $('#widget');
+
+  // tabs
+  document.querySelectorAll('.tabs button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.tabs button').forEach(function (o) { o.setAttribute('aria-selected', o === b ? 'true' : 'false'); });
+      var a = b.dataset.tab === 'desktop';
+      sceneA.style.display = a ? '' : 'none'; sceneB.style.display = a ? 'none' : '';
+      $('#notesA').style.display = a ? '' : 'none'; $('#notesB').style.display = a ? 'none' : '';
+      $('#rowBehind').style.display = a ? '' : 'none'; $('#rowKeep').style.display = a ? '' : 'none';
+      $('#showHelp').textContent = a ? 'A small widget with today’s classes that stays on the desktop.' : 'A timeline strip along the bottom of the main window.';
+    });
+  });
+
+  // timeline for B (8 AM to 5 PM)
+  var track = $('#track'), start = 8 * 60, end = 17 * 60, span = end - start;
+  var pct = function (m) { return ((m - start) / span * 100).toFixed(3) + '%'; };
+  for (var h = 8; h <= 16; h++) {
+    var l = document.createElement('div'); l.className = 'hr'; l.style.left = pct(h * 60);
+    l.textContent = ((h + 11) % 12 + 1) + (h >= 12 ? ' PM' : ' AM'); track.appendChild(l);
+  }
+  [[630, 705, 'MATH 240', 'Hall B 112', 'var(--green)'], [780, 855, 'PHYS 110', 'Science 12', 'var(--orange)'], [900, 950, 'CS 201', 'Recitation', 'var(--blue)']].forEach(function (e) {
+    var d = document.createElement('div'); d.className = 'ev';
+    d.style.left = 'calc(' + pct(e[0]) + ' + 2px)'; d.style.width = 'calc(' + ((e[1] - e[0]) / span * 100) + '% - 4px)'; d.style.background = e[4];
+    d.innerHTML = '<b>' + e[2] + '</b>' + e[3]; track.appendChild(d);
+  });
+  var nl = document.createElement('div'); nl.className = 'nowline'; nl.style.left = pct(652); track.appendChild(nl);
+  $('.strip .x').addEventListener('click', function () { $('#optShow').checked = false; apply(); });
+
+  // settings
+  function apply() {
+    var show = $('#optShow').checked, behind = $('#optBehind').checked;
+    sceneA.classList.toggle('hidden-widget', !show);
+    sceneA.dataset.front = behind ? 'window' : 'widget';
+    sceneB.classList.toggle('nostrip', !show);
+    $('#opts').classList.toggle('is-off', !show);
+    widget.style.setProperty('--op', $('#optOp').value);
+  }
+  ['#optShow', '#optBehind', '#optKeep', '#optOp'].forEach(function (s) { $(s).addEventListener('input', apply); });
+  function seg(id, attr, fn) {
+    var btns = document.querySelectorAll(id + ' button');
+    btns.forEach(function (b) { b.addEventListener('click', function () { btns.forEach(function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); }); fn(b.dataset[attr]); }); });
+  }
+  seg('#size', 's', function (v) { sceneA.classList.toggle('compact', v === 'compact'); });
+  seg('#theme', 't', function (v) { var d = v === 'dark'; [sceneA, sceneB].forEach(function (s) { s.classList.toggle('dark', d); }); sceneA.classList.toggle('dark', d); widget.classList.toggle('dark', d); sceneB.querySelector('.dock').classList.toggle('dark', d); });
+  apply();
+})();
+</script>
+</body>
+</html>

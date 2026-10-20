@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings Preview</title>
+<style>
+:root {
+  --bg: #f8fafd; --panel: #fff; --soft: #f1f4f9; --pop: #edf2fa; --line: #dadce0; --strong: #747775;
+  --ink: #1f1f1f; --ink2: #444746; --ink3: #5f6368; --ink4: #80868b; --hover: rgba(31,31,31,.07);
+  --primary: #0b57d0; --on-primary: #fff; --container: #c2e7ff; --on-container: #001d35; --now: #d93025;
+  --blue: #039be5; --green: #33b679; --orange: #ef6c00; --violet: #8e24aa; --rose: #e67c73; --on-event: #fff;
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; --out: cubic-bezier(.2,.8,.2,1); --spring: cubic-bezier(.3,1.4,.5,1);
+  --scale: 1;
+}
+.dark { --bg:#0b0b0c; --panel:#131314; --soft:#1b1b1c; --pop:#1e1f20; --line:#303134; --strong:#8e918f; --ink:#e3e3e3; --ink2:#c4c7c5; --ink3:#9aa0a6; --ink4:#80868b; --hover:rgba(227,227,227,.09);
+  --primary:#a8c7fa; --on-primary:#062e6f; --container:#004a77; --on-container:#c2e7ff; --now:#f28b82;
+  --blue:#74c0ee; --green:#6cc49a; --orange:#f5a25d; --violet:#c58ad6; --rose:#f0a19a; --on-event:#1b1b1b; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #e9edf4; color: #1f1f1f; font: 14px/1.5 var(--font); }
+.page { width: min(1280px, 100% - 32px); margin: 0 auto; padding: 26px 0 60px; }
+h1 { font-size: 26px; font-weight: 600; letter-spacing: -.02em; margin: 0 0 4px; }
+.lead { color: #5f6368; margin: 0 0 18px; max-width: 76ch; }
+
+.win { background: var(--bg); color: var(--ink); border-radius: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.15), 0 24px 70px rgba(30,40,90,.24); overflow: hidden; display: grid; grid-template-columns: 236px 1fr 360px; min-height: 640px; }
+@media (max-width: 1100px) { .win { grid-template-columns: 200px 1fr; } .prev { display: none; } }
+.nav { padding: 20px 12px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+.nav h2 { font-size: 20px; font-weight: 500; margin: 0 8px 12px; letter-spacing: -.01em; }
+.search { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 20px; background: var(--soft); margin: 0 4px 12px; color: var(--ink3); }
+.search input { flex: 1; border: 0; background: transparent; color: var(--ink); font: 14px var(--font); outline: none; min-width: 0; }
+.nav button { display: flex; align-items: center; gap: 12px; border: 0; background: transparent; color: var(--ink2); height: 40px; padding: 0 14px; border-radius: 20px; font: 500 14px var(--font); cursor: pointer; text-align: left; transition: background .15s; }
+.nav button:hover { background: var(--hover); }
+.nav button[aria-current="true"] { background: var(--container); color: var(--on-container); font-weight: 600; }
+.nav svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.nav .cnt { margin-left: auto; font-size: 12px; opacity: .7; }
+.nav .foot { margin-top: auto; padding: 12px 4px 0; }
+.btn { height: 38px; padding: 0 20px; border-radius: 999px; border: 1px solid var(--strong); background: transparent; color: var(--ink); font: 500 14px var(--font); cursor: pointer; transition: background .15s, transform .15s var(--out); }
+.btn:hover { background: var(--hover); } .btn:active { transform: scale(.96); }
+.btn.primary { background: var(--primary); color: var(--on-primary); border-color: transparent; } .btn.primary:hover { filter: brightness(1.08); }
+.btn.quiet { border-color: transparent; color: var(--primary); padding: 0 14px; } .btn.quiet:hover { background: color-mix(in srgb, var(--primary) 12%, transparent); }
+
+.main { padding: 22px 28px 24px; overflow: auto; max-height: 720px; }
+.main h3 { font-size: 22px; font-weight: 500; letter-spacing: -.01em; margin: 0 0 2px; }
+.main .sub { color: var(--ink3); margin: 0 0 14px; }
+.group { margin: 0 0 22px; }
+.group > h4 { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink3); margin: 0 0 4px; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); animation: rowIn .3s var(--out) backwards; }
+.group > h4 + .row { border-top-color: transparent; }
+@keyframes rowIn { from { opacity: 0; transform: translateY(5px); } }
+.row label { font-weight: 500; display: block; }
+.row small { display: block; color: var(--ink3); font-size: 12.5px; line-height: 1.4; margin-top: 1px; max-width: 46ch; }
+.dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); margin-left: 8px; vertical-align: 2px; }
+.new { font-size: 10.5px; font-weight: 700; background: var(--container); color: var(--on-container); border-radius: 99px; padding: 0 7px; margin-left: 8px; vertical-align: 1px; }
+.seg { display: inline-flex; border: 1px solid var(--strong); border-radius: 999px; }
+.seg button { border: 0; background: transparent; color: var(--ink); height: 34px; padding: 0 14px; border-radius: 999px; font: 500 13px var(--font); cursor: pointer; transition: background .2s, color .2s; }
+.seg button[aria-pressed="true"] { background: var(--container); color: var(--on-container); font-weight: 600; }
+.sw { position: relative; width: 44px; height: 26px; } .sw input { position: absolute; inset: 0; opacity: 0; margin: 0; z-index: 1; cursor: pointer; }
+.sw span { position: absolute; inset: 0; border-radius: 99px; border: 2px solid var(--strong); transition: .2s; }
+.sw span::after { content: ""; position: absolute; top: 4px; left: 4px; width: 14px; height: 14px; border-radius: 50%; background: var(--strong); transition: transform .3s var(--spring), background .2s, width .2s, height .2s, top .2s; }
+.sw input:checked + span { background: var(--primary); border-color: var(--primary); } .sw input:checked + span::after { transform: translateX(18px); background: var(--on-primary); width: 18px; height: 18px; top: 2px; }
+.step { display: inline-flex; align-items: center; border: 1px solid var(--strong); border-radius: 999px; height: 36px; }
+.step button { width: 34px; height: 34px; border: 0; background: transparent; color: var(--ink); font-size: 18px; border-radius: 50%; cursor: pointer; } .step button:hover { background: var(--hover); }
+.step output { min-width: 64px; text-align: center; font-weight: 500; font-variant-numeric: tabular-nums; }
+.sel { height: 36px; padding: 0 30px 0 14px; border-radius: 10px; border: 1px solid var(--strong); background: var(--panel); color: var(--ink); font: 14px var(--font); }
+.chips { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.chips button { height: 32px; min-width: 44px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--strong); background: transparent; color: var(--ink); font: 500 13px var(--font); cursor: pointer; }
+.chips button[aria-pressed="true"] { background: var(--container); border-color: var(--container); color: var(--on-container); }
+.swatches { display: inline-flex; gap: 8px; } .swatches button { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; background: var(--c); cursor: pointer; box-shadow: inset 0 0 0 2px var(--panel); transition: transform .25s var(--spring); }
+.swatches button:hover { transform: scale(1.12); } .swatches button[aria-pressed="true"] { border-color: var(--ink); }
+.path { font: 12.5px "Cascadia Mono", Consolas, monospace; background: var(--soft); padding: 4px 10px; border-radius: 8px; color: var(--ink2); }
+.empty { color: var(--ink3); padding: 30px 0; text-align: center; }
+.foot-note { color: var(--ink4); font-size: 12px; margin-top: 8px; }
+
+/* preview pane */
+.prev { border-left: 1px solid var(--line); padding: 20px 18px; background: color-mix(in srgb, var(--soft) 55%, var(--bg)); display: flex; flex-direction: column; gap: 10px; }
+.prev h4 { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink3); }
+.mini { background: var(--panel); border-radius: 14px; overflow: auto; max-height: 600px; border: 1px solid var(--line); font-size: calc(10.5px * var(--scale)); position: relative; }
+.mini .mh { display: grid; padding: 8px 0 4px; } .mini .mh div { text-align: center; color: var(--ink3); font-weight: 500; line-height: 1.25; } .mini .mh b { display: block; font-size: calc(15px * var(--scale)); font-weight: 400; color: var(--ink); }
+.mini .mh .t b { background: var(--primary); color: var(--on-primary); border-radius: 50%; width: 26px; height: 26px; line-height: 26px; margin: 0 auto; }
+.mini .mb { position: relative; margin-left: 34px; margin-right: 6px; display: grid; }
+.mini .col { position: relative; border-left: 1px solid var(--line); }
+.mini .hr { position: absolute; left: -34px; right: 0; border-top: 1px solid var(--line); } .mini .hr span { position: absolute; left: 0; top: -6px; width: 28px; text-align: right; color: var(--ink3); font-size: calc(9px * var(--scale)); background: var(--panel); padding-right: 3px; }
+.mini .ev { position: absolute; left: 2px; right: 4px; border-radius: 6px; padding: 2px 5px; background: var(--c); color: var(--on-event); overflow: hidden; line-height: 1.25; display: flex; flex-direction: column; justify-content: center; transition: top .3s var(--out), height .3s var(--out); }
+.mini .ev.top { justify-content: flex-start; } .mini .ev b { font-weight: 600; }
+.mini .now { position: absolute; left: 0; right: 0; height: 2px; background: var(--now); z-index: 2; } .mini .now::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--now); }
+.mini .wk { text-align: right; padding: 4px 10px 6px; font-size: 10.5px; color: var(--ink3); border-top: 1px solid var(--line); }
+.mini { transition: font-size .2s; }
+.hint { color: var(--ink3); font-size: 12.5px; }
+.toastbar { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: #303030; color: #f2f2f2; padding: 10px 18px; border-radius: 10px; font-size: 13px; animation: tIn .3s var(--spring); z-index: 9; }
+@keyframes tIn { from { opacity: 0; transform: translate(-50%, 14px); } }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Settings, rebuilt</h1>
+  <p class="lead">A preview of the new Settings window: sections on the left, search across everything, changes applied as you make them (no Save/Cancel), and a live mini week on the right for the settings that change how the schedule looks. Nothing is built into the app yet. Everything here is a proposal to prune.</p>
+
+  <div class="win" id="win">
+    <nav class="nav" id="nav">
+      <h2>Settings</h2>
+      <label class="search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="q" placeholder="Search settings" aria-label="Search settings"></label>
+      <div id="tabs" style="display:grid;gap:2px"></div>
+      <div class="foot"><button class="btn" id="resetAll" style="width:100%">Reset everything…</button><p class="foot-note">Settings are saved with your schedule file, except where marked “this PC”.</p></div>
+    </nav>
+    <section class="main" id="main"></section>
+    <aside class="prev" id="prev">
+      <h4>Live preview</h4>
+      <div class="mini" id="mini"></div>
+      <p class="hint">Settings marked with a <span class="dot" style="margin:0 2px"></span> change this preview.</p>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var ICONS = {
+    general: '<path d="M4 8h16M4 16h16M9 5v6M15 13v6"/>', calendar: '<path d="M7.5 5.5h9a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-9a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3zM4.5 10h15M9 3.5v3M15 3.5v3"/>',
+    classes: '<path d="M4 6.5h16M4 12h16M4 17.5h9"/>', remind: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/>',
+    look: '<path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 1.5-2-.6-1.2.2-2.5 1.7-2.5H17a4 4 0 0 0 4-4C21 7 17 3 12 3zM7.5 11h.01M10 7.5h.01M14.5 7.5h.01"/>',
+    widget: '<path d="M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z"/>', data: '<path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>'
+  };
+  var S = {}, DEF = {};
+
+  /* section definitions: live = changes the preview, pc = stored per computer */
+  var SECTIONS = [
+    { id: 'general', name: 'General', sub: 'How the app opens, closes and behaves.', groups: [
+      { name: 'Startup', rows: [
+        { id: 'view', label: 'Open in this view', type: 'seg', opts: ['Week', 'Day', 'List'], def: 'Week' },
+        { id: 'openOn', label: 'Open on', hint: 'Which week to show when the app starts.', type: 'seg', opts: ['This week', 'Where I left off'], def: 'This week' },
+        { id: 'login', label: 'Start with Windows', hint: 'Launch quietly in the background when you sign in.', type: 'switch', def: false, pc: true, isNew: true },
+        { id: 'startMin', label: 'Start hidden when the widget is on', hint: 'Show only the desktop widget; open the window from it.', type: 'switch', def: false, pc: true, isNew: true }
+      ]},
+      { name: 'Closing', rows: [
+        { id: 'close', label: 'When I close the window', hint: 'The widget case follows your earlier rule: keep running only if the widget is showing.', type: 'select', opts: ['Keep running if the widget is on', 'Always quit', 'Always keep running in the background'], def: 'Keep running if the widget is on', pc: true, isNew: true }
+      ]},
+      { name: 'Editing', rows: [
+        { id: 'confirm', label: 'Deleting a class', type: 'seg', opts: ['Undo toast', 'Ask first'], def: 'Undo toast', isNew: true },
+        { id: 'undoSecs', label: 'Undo stays for', type: 'step', min: 3, max: 20, unit: ' s', def: 8, isNew: true },
+        { id: 'menus', label: 'Right-click menus', hint: 'Turn off if you prefer the Windows default.', type: 'switch', def: true, isNew: true }
+      ]}
+    ]},
+    { id: 'calendar', name: 'Calendar', sub: 'What the week, day and list views show.', groups: [
+      { name: 'Time', rows: [
+        { id: 'hour12', label: 'Clock', type: 'seg', opts: ['12-hour', '24-hour'], def: '12-hour', live: true, isNew: true },
+        { id: 'weekStart', label: 'Week starts on', type: 'seg', opts: ['Monday', 'Sunday'], def: 'Monday', live: true, isNew: true },
+        { id: 'weekNo', label: 'Show “Week 9 of 15”', type: 'switch', def: true, live: true }
+      ]},
+      { name: 'Days and hours', rows: [
+        { id: 'weekends', label: 'Weekends', hint: 'Auto shows them only when a class is on a weekend.', type: 'seg', opts: ['Auto', 'Always', 'Never'], def: 'Auto', live: true, isNew: true },
+        { id: 'hours', label: 'Visible hours', hint: 'Auto fits your classes.', type: 'seg', opts: ['Auto', '7 AM – 7 PM', '8 AM – 10 PM'], def: 'Auto', live: true, isNew: true },
+        { id: 'rowH', label: 'Hour height', hint: 'Taller hours fit more text on short classes.', type: 'seg', opts: ['Compact', 'Comfortable', 'Spacious'], def: 'Comfortable', live: true, isNew: true }
+      ]},
+      { name: 'Class cards', rows: [
+        { id: 'detail', label: 'What a card shows', hint: 'Lines only appear when they fit.', type: 'seg', opts: ['Code only', 'Code + room', 'Everything that fits'], def: 'Everything that fits', live: true, isNew: true },
+        { id: 'nowLine', label: 'Current-time line', type: 'switch', def: true, live: true, isNew: true },
+        { id: 'pastDim', label: 'Dim classes that already happened', type: 'switch', def: false, live: true, isNew: true }
+      ]}
+    ]},
+    { id: 'classes', name: 'New classes', sub: 'What a class starts as before you type anything.', groups: [
+      { name: 'Defaults', rows: [
+        { id: 'len', label: 'Length', type: 'step', min: 20, max: 180, step: 5, unit: ' min', def: 40, isNew: true },
+        { id: 'startAt', label: 'Starts at', type: 'select', opts: ['8:00 AM', '9:00 AM', '10:00 AM', '1:00 PM'], def: '9:00 AM', isNew: true },
+        { id: 'days', label: 'Days', type: 'chips', opts: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], multi: true, def: ['Mon', 'Wed', 'Fri'], isNew: true },
+        { id: 'kind', label: 'Kind', type: 'select', opts: ['Lecture', 'Lab', 'Seminar', 'Discussion', 'Studio'], def: 'Lecture', isNew: true },
+        { id: 'credits', label: 'Credits', type: 'step', min: 0, max: 12, def: 3, isNew: true }
+      ]},
+      { name: 'Colors', rows: [
+        { id: 'colorMode', label: 'Color for a new course', type: 'seg', opts: ['Next in the palette', 'Always ask'], def: 'Next in the palette', isNew: true },
+        { id: 'palette', label: 'Palette', hint: 'The colors courses cycle through.', type: 'swatches', def: 'Google', opts: ['Google', 'Pastel', 'Vivid'], isNew: true }
+      ]}
+    ]},
+    { id: 'remind', name: 'Reminders', sub: 'Nudges before things start or are due.', groups: [
+      { name: 'Classes', rows: [
+        { id: 'remClass', label: 'Remind me before class', type: 'switch', def: true },
+        { id: 'remMin', label: 'How early', type: 'step', min: 1, max: 120, unit: ' min', def: 10 }
+      ]},
+      { name: 'Assignments and exams', rows: [
+        { id: 'remTask', label: 'Remind me about due dates', type: 'switch', def: true, isNew: true },
+        { id: 'remTaskWhen', label: 'Remind me', type: 'select', opts: ['1 hour before', '1 day before', 'Morning of', '1 day and 1 hour before'], def: '1 day before', isNew: true }
+      ]},
+      { name: 'Delivery', rows: [
+        { id: 'remHow', label: 'Show reminders as', type: 'seg', opts: ['Windows notification', 'In the app only'], def: 'Windows notification', pc: true, isNew: true },
+        { id: 'remSound', label: 'Play a sound', type: 'switch', def: false, pc: true, isNew: true },
+        { id: 'remWhenOpen', label: 'Only while the app or widget is running', hint: 'Reminders can’t fire when the app is fully closed.', type: 'switch', def: true, locked: true }
+      ]}
+    ]},
+    { id: 'look', name: 'Appearance', sub: 'Colors, size and motion.', groups: [
+      { name: 'Theme', rows: [
+        { id: 'theme', label: 'Theme', type: 'seg', opts: ['System', 'Light', 'Dark'], def: 'Light', live: true, pc: true },
+        { id: 'accent', label: 'Accent color', hint: 'Buttons, today, and highlights.', type: 'swatches', def: 'Blue', opts: ['Blue', 'Violet', 'Green', 'Rose', 'Orange'], live: true, isNew: true }
+      ]},
+      { name: 'Size and density', rows: [
+        { id: 'text', label: 'Text size', type: 'seg', opts: ['Small', 'Normal', 'Large'], def: 'Normal', live: true, isNew: true },
+        { id: 'density', label: 'Density', hint: 'Tighter rows in lists, menus and dialogs.', type: 'seg', opts: ['Comfortable', 'Compact'], def: 'Comfortable', isNew: true }
+      ]},
+      { name: 'Layout', rows: [
+        { id: 'side', label: 'Sidebar on the left', type: 'switch', def: true, isNew: true },
+        { id: 'sideMini', label: 'Mini month', type: 'switch', def: true, isNew: true },
+        { id: 'sideCourses', label: 'My courses list', type: 'switch', def: true, isNew: true },
+        { id: 'rail', label: 'Right panel (Now, Today, Coming up)', type: 'switch', def: true, isNew: true }
+      ]},
+      { name: 'Motion', rows: [
+        { id: 'anim', label: 'Animations', hint: 'Also off when Windows “Show animations” is off.', type: 'switch', def: true, pc: true }
+      ]}
+    ]},
+    { id: 'widget', name: 'Desktop widget', sub: 'Today’s schedule, behind your windows.', groups: [
+      { name: 'Widget', rows: [
+        { id: 'wOn', label: 'Show on the desktop', type: 'switch', def: false, pc: true },
+        { id: 'wBehind', label: 'Keep behind other windows', type: 'switch', def: true, pc: true },
+        { id: 'wSize', label: 'Size', type: 'seg', opts: ['Comfortable', 'Compact'], def: 'Comfortable', pc: true },
+        { id: 'wOpacity', label: 'Opacity', type: 'seg', opts: ['100%', '90%', '75%', '60%'], def: '90%', pc: true }
+      ]},
+      { name: 'Content', rows: [
+        { id: 'wDone', label: 'Show classes that already happened', type: 'switch', def: true, isNew: true },
+        { id: 'wDue', label: 'Show “Next due”', type: 'switch', def: true, isNew: true },
+        { id: 'wTomorrow', label: 'Show tomorrow when today is finished', type: 'switch', def: false, isNew: true },
+        { id: 'wReset', label: 'Position', hint: 'Put the widget back in the top-right corner.', type: 'button', text: 'Reset position', isNew: true }
+      ]}
+    ]},
+    { id: 'data', name: 'Data', sub: 'Where your schedule lives, and backups.', groups: [
+      { name: 'Schedule file', rows: [
+        { id: 'file', label: 'Location', hint: 'Open a different schedule, or save a copy elsewhere (for example D:\\).', type: 'path', text: 'C:\\Users\\you\\AppData\\Roaming\\ClassSchedule\\schedule.json' },
+        { id: 'showFile', label: 'Show in Explorer', type: 'button', text: 'Show file', isNew: true }
+      ]},
+      { name: 'Backups', rows: [
+        { id: 'backup', label: 'Keep automatic backups', hint: 'A dated copy beside the file when the app starts.', type: 'switch', def: false, isNew: true },
+        { id: 'backupN', label: 'How many to keep', type: 'step', min: 1, max: 30, def: 5, isNew: true }
+      ]},
+      { name: 'Term', rows: [
+        { id: 'term', label: 'Term name and dates', hint: 'Used for “Week 9 of 15” and exported calendars.', type: 'button', text: 'Edit term…' }
+      ]}
+    ]}
+  ];
+
+  SECTIONS.forEach(function (sec) { sec.groups.forEach(function (g) { g.rows.forEach(function (r) { S[r.id] = r.def; DEF[r.id] = r.def; }); }); });
+
+  var current = 'general', query = '';
+
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+
+  function control(r) {
+    var box = el('div');
+    if (r.type === 'switch') {
+      var w = el('span', 'sw', '<input type="checkbox" aria-label="' + r.label + '"><span></span>'), inp = $('input', w); inp.checked = !!S[r.id]; inp.disabled = !!r.locked;
+      inp.onchange = function () { S[r.id] = inp.checked; changed(r); }; return w;
+    }
+    if (r.type === 'seg') {
+      var g = el('div', 'seg'); r.opts.forEach(function (o) { var b = el('button', '', o); b.setAttribute('aria-pressed', S[r.id] === o); b.onclick = function () { S[r.id] = o; g.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); changed(r); }; g.appendChild(b); }); return g;
+    }
+    if (r.type === 'select') {
+      var s = el('select', 'sel'); r.opts.forEach(function (o) { var op = el('option', '', o); op.selected = S[r.id] === o; s.appendChild(op); }); s.onchange = function () { S[r.id] = s.value; changed(r); }; return s;
+    }
+    if (r.type === 'step') {
+      var d = el('div', 'step'), out = el('output'), st = r.step || 1;
+      var minus = el('button', '', '−'), plus = el('button', '', '+'); d.append(minus, out, plus);
+      function show() { out.textContent = S[r.id] + (r.unit || ''); } show();
+      minus.onclick = function () { S[r.id] = Math.max(r.min, S[r.id] - st); show(); changed(r); }; plus.onclick = function () { S[r.id] = Math.min(r.max, S[r.id] + st); show(); changed(r); }; return d;
+    }
+    if (r.type === 'chips') {
+      var c = el('div', 'chips'); r.opts.forEach(function (o) { var b = el('button', '', o); b.setAttribute('aria-pressed', S[r.id].indexOf(o) >= 0); b.onclick = function () { var a = S[r.id], i = a.indexOf(o); if (i >= 0) a.splice(i, 1); else a.push(o); b.setAttribute('aria-pressed', i < 0); changed(r); }; c.appendChild(b); }); return c;
+    }
+    if (r.type === 'swatches') {
+      var COL = { Blue: '#0b57d0', Violet: '#8e24aa', Green: '#1e8e3e', Rose: '#e67c73', Orange: '#ef6c00', Google: 'conic-gradient(#039be5 0 25%, #33b679 0 50%, #ef6c00 0 75%, #8e24aa 0)', Pastel: 'conic-gradient(#9fd3f0 0 25%, #a8dbc0 0 50%, #f6c7a0 0 75%, #d9b3e3 0)', Vivid: 'conic-gradient(#0070f3 0 25%, #00b86b 0 50%, #ff6a00 0 75%, #b100e8 0)' };
+      var sw = el('div', 'swatches'); r.opts.forEach(function (o) { var b = el('button'); b.title = o; b.style.setProperty('--c', COL[o]); b.setAttribute('aria-pressed', S[r.id] === o); b.onclick = function () { S[r.id] = o; sw.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); changed(r); }; sw.appendChild(b); }); return sw;
+    }
+    if (r.type === 'path') { var p = el('div'); p.style.cssText = 'display:grid;gap:8px;justify-items:end'; p.innerHTML = '<span class="path">' + r.text.replace(/\\/g, '\\') + '</span>'; var bs = el('div'); bs.style.cssText = 'display:flex;gap:8px'; ['Open…', 'Save as…'].forEach(function (t) { var b = el('button', 'btn', t); b.onclick = function () { say('Would open the Windows “' + t.replace('…', '') + '” dialog'); }; bs.appendChild(b); }); p.appendChild(bs); return p; }
+    if (r.type === 'button') { var bt = el('button', 'btn', r.text); bt.onclick = function () { say('Would: ' + r.text.toLowerCase().replace('…', '')); }; return bt; }
+    return box;
+  }
+
+  function say(t) { var old = $('.toastbar'); if (old) old.remove(); var b = el('div', 'toastbar', t); document.body.appendChild(b); setTimeout(function () { b.remove(); }, 2400); }
+
+  function matches(r, g, sec) { if (!query) return true; var q = query.toLowerCase(); return (r.label + ' ' + (r.hint || '') + ' ' + g.name + ' ' + sec.name).toLowerCase().indexOf(q) >= 0; }
+
+  function renderTabs() {
+    var t = $('#tabs'); t.innerHTML = '';
+    SECTIONS.forEach(function (sec) {
+      var n = 0; sec.groups.forEach(function (g) { g.rows.forEach(function (r) { if (matches(r, g, sec)) n++; }); });
+      if (query && !n) return;
+      var b = el('button', '', '<svg viewBox="0 0 24 24">' + ICONS[sec.id] + '</svg>' + sec.name + (query ? '<span class="cnt">' + n + '</span>' : ''));
+      b.setAttribute('aria-current', !query && sec.id === current);
+      b.onclick = function () { current = sec.id; query = ''; $('#q').value = ''; render(); }; t.appendChild(b);
+    });
+  }
+
+  function render() {
+    renderTabs();
+    var m = $('#main'); m.innerHTML = '';
+    var list = query ? SECTIONS : SECTIONS.filter(function (s) { return s.id === current; }), shown = 0;
+    list.forEach(function (sec) {
+      var head = false, k = 0;
+      sec.groups.forEach(function (g) {
+        var rows = g.rows.filter(function (r) { return matches(r, g, sec); }); if (!rows.length) return;
+        if (!head) { m.appendChild(el('h3', '', query ? sec.name : sec.name)); if (!query) m.appendChild(el('p', 'sub', sec.sub)); else m.appendChild(el('p', 'sub', '')); head = true; }
+        var gd = el('div', 'group'); gd.appendChild(el('h4', '', g.name));
+        rows.forEach(function (r) {
+          var row = el('div', 'row'); row.style.animationDelay = (k++ * 22) + 'ms';
+          var left = el('div'); left.innerHTML = '<label>' + r.label + (r.live ? '<i class="dot" title="Changes the live preview"></i>' : '') + (r.isNew ? '<span class="new">New</span>' : '') + (r.pc ? ' <span style="font-size:11px;color:var(--ink4);font-weight:400">· this PC</span>' : '') + '</label>' + (r.hint ? '<small>' + r.hint + '</small>' : '');
+          row.appendChild(left); row.appendChild(control(r)); gd.appendChild(row); shown++;
+        });
+        m.appendChild(gd);
+        if (!query) { var rs = el('button', 'btn quiet', 'Reset ' + g.name.toLowerCase() + ' to defaults'); rs.onclick = function () { g.rows.forEach(function (r) { S[r.id] = Array.isArray(DEF[r.id]) ? DEF[r.id].slice() : DEF[r.id]; }); render(); preview(); say('Reset ' + g.name); }; gd.appendChild(rs); }
+      });
+    });
+    if (!shown) m.appendChild(el('div', 'empty', 'No settings match “' + query + '”.'));
+  }
+
+  function changed(r) { if (r.id === 'theme') document.getElementById('win').classList.toggle('dark', S.theme === 'Dark'); preview(); }
+
+  /* live mini preview */
+  var ACCENT = { Blue: ['#0b57d0', '#c2e7ff', '#001d35'], Violet: ['#8e24aa', '#f1d4f7', '#3a0a47'], Green: ['#1e8e3e', '#c8ecd3', '#06260f'], Rose: ['#c2185b', '#fbd0e0', '#4a0b24'], Orange: ['#d9650a', '#ffddb8', '#3b1b00'] };
+  var EVENTS = [[0,'CS 201','Lecture','Room 304',540,580,'var(--blue)'],[0,'ENG 105','Seminar','Hall 220',660,735,'var(--violet)'],[1,'MATH 240','Lecture','Hall B 112',630,670,'var(--green)'],[1,'PHYS 110','Lecture','Sci 12',780,855,'var(--orange)'],[2,'CS 201','Lecture','Room 304',540,580,'var(--blue)'],[2,'PHYS 110','Lab','Sci 3',840,1010,'var(--orange)'],[3,'MATH 240','Lecture','Hall B 112',630,670,'var(--green)'],[4,'CS 201','Lecture','Room 304',540,580,'var(--blue)'],[5,'ART 120','Studio','Fine Arts',600,690,'var(--rose)']];
+  function clock(m) { var h = Math.floor(m / 60), mm = String(m % 60).padStart(2, '0'); if (S.hour12 === '24-hour') return h + ':' + mm; return ((h + 11) % 12 + 1) + ':' + mm + (h >= 12 ? ' PM' : ' AM'); }
+  function preview() {
+    var root = document.getElementById('win'), a = ACCENT[S.accent];
+    root.style.setProperty('--primary', S.theme === 'Dark' ? a[1] : a[0]); root.style.setProperty('--container', S.theme === 'Dark' ? '#3a3a3a' : a[1]); root.style.setProperty('--on-container', S.theme === 'Dark' ? '#fff' : a[2]);
+    root.style.setProperty('--scale', { Small: .92, Normal: 1, Large: 1.14 }[S.text]);
+    var mini = $('#mini'); mini.innerHTML = '';
+    var names = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    var order = S.weekStart === 'Sunday' ? [6, 0, 1, 2, 3, 4, 5] : [0, 1, 2, 3, 4, 5, 6];
+    var days = order.filter(function (d) {
+      if (d < 5) return true;
+      if (S.weekends === 'Never') return false;
+      return S.weekends === 'Always' || EVENTS.some(function (e) { return e[0] === d; });
+    });
+    var hrs = S.hours === 'Auto' ? [9, 17] : S.hours === '7 AM – 7 PM' ? [7, 19] : [8, 22];
+    var H = { Compact: 44, Comfortable: 58, Spacious: 72 }[S.rowH];
+    var head = el('div', 'mh'); head.style.gridTemplateColumns = '34px repeat(' + days.length + ', 1fr)'; head.appendChild(el('div'));
+    days.forEach(function (d, i) { var c = el('div', d === 1 ? 't' : '', names[d] + '<b>' + (S.weekStart === 'Sunday' && d === 6 ? 18 : 19 + d) + '</b>'); head.appendChild(c); });
+    mini.appendChild(head);
+    var body = el('div', 'mb'); body.style.gridTemplateColumns = 'repeat(' + days.length + ', 1fr)'; body.style.height = ((hrs[1] - hrs[0]) * H) + 'px';
+    var cols = days.map(function () { var c = el('div', 'col'); body.appendChild(c); return c; });
+    for (var h = hrs[0] + 1; h <= hrs[1]; h++) { var l = el('div', 'hr', '<span>' + (S.hour12 === '24-hour' ? h + ':00' : ((h + 11) % 12 + 1) + (h >= 12 ? 'p' : 'a')) + '</span>'); l.style.top = ((h - hrs[0]) * H) + 'px'; body.appendChild(l); }
+    EVENTS.forEach(function (e) {
+      var ci = days.indexOf(e[0]); if (ci < 0 || e[4] < hrs[0] * 60 || e[5] > hrs[1] * 60) return;
+      var top = (e[4] - hrs[0] * 60) * H / 60, ht = (e[5] - e[4]) * H / 60 - 1, d = el('div', 'ev'), lines = [];
+      d.style.cssText = '--c:' + e[6] + ';top:' + top + 'px;height:' + ht + 'px';
+      var lineH = 13 * (S.text === 'Large' ? 1.14 : S.text === 'Small' ? .92 : 1), fit = Math.floor((ht - 6) / lineH);
+      var single = fit < 2 || S.detail === 'Code only';
+      if (single && S.detail !== 'Code only') lines = ['<b>' + e[1] + '</b>, ' + clock(e[4])]; else if (S.detail === 'Code only') lines = ['<b>' + e[1] + '</b>'];
+      else { lines = ['<b>' + e[1] + '</b>']; var second = S.detail === 'Code + room' ? e[3] : e[2] + ' · ' + e[3]; lines.push(second); if (fit >= 3 && S.detail === 'Everything that fits') lines.push(clock(e[4]) + '–' + clock(e[5])); }
+      if (S.pastDim && e[0] === 0) d.style.opacity = .45;
+      if (!single) d.classList.add('top'); d.innerHTML = lines.join('<br>'); cols[ci].appendChild(d);
+    });
+    var ti = days.indexOf(1); if (S.nowLine && ti >= 0 && 652 > hrs[0] * 60 && 652 < hrs[1] * 60) { var n = el('div', 'now'); n.style.top = ((652 - hrs[0] * 60) * H / 60) + 'px'; cols[ti].appendChild(n); }
+    mini.appendChild(body);
+    if (S.weekNo) mini.appendChild(el('div', 'wk', 'Week 9 of 15'));
+  }
+
+  $('#q').addEventListener('input', function (e) { query = e.target.value.trim(); render(); });
+  $('#resetAll').onclick = function () { SECTIONS.forEach(function (sec) { sec.groups.forEach(function (g) { g.rows.forEach(function (r) { S[r.id] = Array.isArray(DEF[r.id]) ? DEF[r.id].slice() : DEF[r.id]; }); }); }); document.getElementById('win').classList.remove('dark'); render(); preview(); say('Everything is back to the defaults'); };
+  render(); preview();
+})();
+</script>
+</body>
+</html>
