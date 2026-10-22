@@ -229,9 +229,16 @@ public partial class MainWindow
 
     private void OnShortcut(object sender, KeyEventArgs e)
     {
+        if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.P)
+        {
+            SaveWeekAsPdf();
+            e.Handled = true;
+            return;
+        }
         if (Keyboard.Modifiers != ModifierKeys.Control) return;
         switch (e.Key)
         {
+            case Key.P: PrintWeek(); break;
             case Key.N: AddClass(); break;
             case Key.B: OpenBulkAdd(); break;
             case Key.T: AddTask(); break;

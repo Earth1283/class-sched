@@ -102,6 +102,10 @@ public static class ScheduleQueries
     public static IReadOnlyList<TaskItem> Upcoming(ScheduleData data, DateTime now, int days = 14) =>
         data.Tasks.Where(t => !t.Done && t.Due <= now.AddDays(days)).OrderBy(t => t.Due).ToList();
 
+    /// <summary>Unfinished work due from the start of <paramref name="first"/> through the end of <paramref name="last"/>, soonest first.</summary>
+    public static IReadOnlyList<TaskItem> DueBetween(ScheduleData data, DateTime first, DateTime last) =>
+        data.Tasks.Where(t => !t.Done && t.Due >= first.Date && t.Due < last.Date.AddDays(1)).OrderBy(t => t.Due).ToList();
+
     /// <summary>The earliest unfinished task due on a later day than today; today's are listed with the day's classes.</summary>
     public static TaskItem? NextDue(ScheduleData data, DateTime now) =>
         data.Tasks.Where(t => !t.Done && t.Due.Date > now.Date).OrderBy(t => t.Due).FirstOrDefault();

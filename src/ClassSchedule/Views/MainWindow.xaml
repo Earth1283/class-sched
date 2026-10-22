@@ -145,6 +145,18 @@
                     <Button Style="{StaticResource MenuItem}" Click="OnExport">
                         <StackPanel Orientation="Horizontal"><v:Icon Key="Icon.Export" Width="18" Height="18" /><TextBlock Text="Export to calendar…" Margin="12,0,0,0" /></StackPanel>
                     </Button>
+                    <Button Style="{StaticResource MenuItem}" Click="OnPrint" HorizontalContentAlignment="Stretch">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal"><v:Icon Key="Icon.Print" Width="18" Height="18" /><TextBlock Text="Print this week…" Margin="12,0,0,0" /></StackPanel>
+                            <TextBlock Text="Ctrl+P" HorizontalAlignment="Right" Foreground="{DynamicResource Brush.Ink4}" FontSize="12" />
+                        </Grid>
+                    </Button>
+                    <Button Style="{StaticResource MenuItem}" Click="OnSavePdf" HorizontalContentAlignment="Stretch">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal"><v:Icon Key="Icon.Export" Width="18" Height="18" /><TextBlock Text="Save this week as PDF…" Margin="12,0,0,0" /></StackPanel>
+                            <TextBlock Text="Ctrl+Shift+P" HorizontalAlignment="Right" Foreground="{DynamicResource Brush.Ink4}" FontSize="12" />
+                        </Grid>
+                    </Button>
                     <Border Height="1" Margin="4,6" Background="{DynamicResource Brush.Line}" />
                     <Button Style="{StaticResource MenuItem}" Click="OnOpenFile">
                         <StackPanel Orientation="Horizontal"><v:Icon Key="Icon.Folder" Width="18" Height="18" /><TextBlock Text="Open schedule file…" Margin="12,0,0,0" /></StackPanel>

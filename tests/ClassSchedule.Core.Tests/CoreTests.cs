@@ -414,6 +414,124 @@ public class StoreTests
         finally { Directory.Delete(dir, true); }
     }
 
+    private static string TempDir()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "cs-test-" + Guid.NewGuid());
+        Directory.CreateDirectory(dir);
+        return dir;
+    }
+
+    [Fact]
+    public void A_damaged_file_is_restored_from_the_newest_backup_that_reads()
+    {
+        var dir = TempDir();
+        try
+        {
+            var path = Path.Combine(dir, "schedule.json");
+            var good = SampleData.Create(new DateTime(2026, 10, 20));
+            new ScheduleStore(Path.Combine(dir, "good.json")).Save(good);
+            File.Copy(Path.Combine(dir, "good.json"), Path.Combine(dir, "schedule.backup-20261001-080000.json"));
+            File.WriteAllText(Path.Combine(dir, "schedule.backup-20261002-080000.json"), "{ half a fi");
+            File.WriteAllText(path, "\0\0\0\0");
+
+            var store = new ScheduleStore(path);
+            var loaded = store.Load(DateTime.Today);
+
+            Assert.Equal(good.Courses.Count, loaded.Courses.Count);
+            Assert.Contains("schedule.backup-20261001-080000.json", store.LoadWarning);
+            Assert.Single(Directory.GetFiles(dir, "*.damaged-*"));
+            store.Save(loaded);
+            Assert.Equal(good.Courses.Count, new ScheduleStore(path).Load(DateTime.Today).Courses.Count);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   \n")]
+    [InlineData("null")]
+    [InlineData("[1, 2]")]
+    [InlineData("{ \"Sessions\": [ { \"Start\": \"25:99:00\" } ] }")]
+    public void Files_that_are_not_a_schedule_are_set_aside_without_a_crash(string text)
+    {
+        var dir = TempDir();
+        try
+        {
+            var path = Path.Combine(dir, "schedule.json");
+            File.WriteAllText(path, text);
+            var store = new ScheduleStore(path);
+
+            Assert.Empty(store.Load(DateTime.Today).Courses);
+            Assert.NotNull(store.LoadWarning);
+            Assert.Single(Directory.GetFiles(dir, "*.damaged-*"));
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void Lists_the_file_left_null_are_filled_in()
+    {
+        var dir = TempDir();
+        try
+        {
+            var path = Path.Combine(dir, "schedule.json");
+            File.WriteAllText(path, "{ \"Settings\": null, \"Courses\": null, \"Tasks\": null, \"Sessions\": [ null, { \"Days\": null } ] }");
+            var loaded = new ScheduleStore(path).Load(DateTime.Today);
+
+            Assert.NotNull(loaded.Settings);
+            Assert.Empty(loaded.Courses);
+            Assert.Empty(loaded.Tasks);
+            Assert.Single(loaded.Sessions);
+            Assert.Empty(loaded.Sessions[0].Days);
+            Assert.Empty(ScheduleQueries.SessionsOn(loaded, DayOfWeek.Monday));
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void A_file_that_stays_locked_is_never_overwritten()
+    {
+        var dir = TempDir();
+        try
+        {
+            var path = Path.Combine(dir, "schedule.json");
+            new ScheduleStore(path).Save(SampleData.Create(new DateTime(2026, 10, 20)));
+            var before = File.ReadAllText(path);
+
+            var store = new ScheduleStore(path);
+            using (new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                Assert.Empty(store.Load(DateTime.Today).Courses);
+            }
+
+            Assert.NotNull(store.LoadWarning);
+            Assert.Throws<IOException>(() => store.Save(new ScheduleData()));
+            Assert.Equal(before, File.ReadAllText(path));
+            Assert.Empty(Directory.GetFiles(dir, "*.damaged-*"));
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void A_file_that_is_only_briefly_locked_is_read_after_a_retry()
+    {
+        var dir = TempDir();
+        try
+        {
+            var path = Path.Combine(dir, "schedule.json");
+            var sample = SampleData.Create(new DateTime(2026, 10, 20));
+            new ScheduleStore(path).Save(sample);
+
+            var store = new ScheduleStore(path);
+            var hold = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            _ = Task.Run(() => { Thread.Sleep(50); hold.Dispose(); });
+
+            Assert.Equal(sample.Courses.Count, store.Load(DateTime.Today).Courses.Count);
+            Assert.Null(store.LoadWarning);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
     [Fact]
     public void First_launch_starts_empty()
     {
@@ -1297,5 +1415,101 @@ public class RemovalUndoTests
         Assert.Empty(data.Courses);
         undo();
         Assert.Equal((5, 7, 3), (data.Courses.Count, data.Sessions.Count, data.Tasks.Count));
+    }
+}
+
+
+public class PdfWriterTests
+{
+    private static string Latin(byte[] bytes) => System.Text.Encoding.Latin1.GetString(bytes);
+
+    [Fact]
+    public void Writes_a_one_page_pdf_whose_offsets_and_pixels_check_out()
+    {
+        const int w = 6, h = 4;
+        var rgb = new byte[w * h * 3];
+        for (var i = 0; i < rgb.Length; i++) rgb[i] = (byte)(i * 7);
+
+        using var stream = new MemoryStream();
+        PdfWriter.WriteImagePage(stream, w, h, rgb, 792, 612, "Fall 2026");
+        var bytes = stream.ToArray();
+        var text = Latin(bytes);
+
+        Assert.StartsWith("%PDF-1.4", text);
+        Assert.EndsWith("%%EOF\n", text);
+        Assert.Contains("/MediaBox [0 0 792 612]", text);
+        Assert.Contains("/Width 6 /Height 4", text);
+        Assert.Contains("/Title (Fall 2026)", text);
+
+        // Every cross-reference entry points at its "N 0 obj" line.
+        var xref = text.IndexOf("\nxref\n", StringComparison.Ordinal) + 1;
+        Assert.Equal(xref, int.Parse(text[(text.LastIndexOf("startxref\n", StringComparison.Ordinal) + 10)..].Split('\n')[0]));
+        var entries = text[xref..].Split('\n').Skip(3).TakeWhile(l => l.EndsWith(" n ")).ToList();
+        Assert.Equal(6, entries.Count);
+        for (var n = 0; n < entries.Count; n++)
+            Assert.StartsWith($"{n + 1} 0 obj", text[int.Parse(entries[n][..10])..]);
+
+        // The image stream decompresses back to the pixels that went in.
+        var start = text.IndexOf("stream\n", text.IndexOf("/Subtype /Image", StringComparison.Ordinal), StringComparison.Ordinal) + 7;
+        var end = text.IndexOf("\nendstream", start, StringComparison.Ordinal);
+        using var inflated = new MemoryStream();
+        using (var zip = new System.IO.Compression.ZLibStream(new MemoryStream(bytes[start..end]), System.IO.Compression.CompressionMode.Decompress))
+            zip.CopyTo(inflated);
+        Assert.Equal(rgb, inflated.ToArray());
+    }
+
+    [Fact]
+    public void Titles_with_accents_or_brackets_are_written_safely()
+    {
+        using var stream = new MemoryStream();
+        PdfWriter.WriteImagePage(stream, 1, 1, new byte[3], 612, 792, "Automne (été)");
+        var text = Latin(stream.ToArray());
+        Assert.Contains("/Title <FEFF", text);
+        Assert.DoesNotContain("Automne (", text);
+    }
+
+    [Fact]
+    public void Refuses_pixel_data_of_the_wrong_size()
+    {
+        Assert.Throws<ArgumentException>(() => PdfWriter.WriteImagePage(new MemoryStream(), 2, 2, new byte[5], 612, 792, "x"));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfWriter.WriteImagePage(new MemoryStream(), 0, 2, Array.Empty<byte>(), 612, 792, "x"));
+    }
+
+    [Fact]
+    public void Pages_are_landscape_letter_or_a4()
+    {
+        Assert.Equal((792.0, 612.0), PdfWriter.LandscapePage(a4: false));
+        Assert.True(PdfWriter.LandscapePage(a4: true).Width > 841);
+    }
+
+    [Theory]
+    [InlineData("US", true)]
+    [InlineData("ca", true)]
+    [InlineData("GB", false)]
+    [InlineData("DE", false)]
+    [InlineData(null, false)]
+    public void Letter_paper_is_for_north_america(string? region, bool letter) =>
+        Assert.Equal(letter, PdfWriter.UsesLetter(region));
+}
+
+public class DueBetweenTests
+{
+    [Fact]
+    public void Lists_unfinished_work_due_inside_the_range_soonest_first()
+    {
+        var course = Guid.NewGuid();
+        var data = new ScheduleData();
+        TaskItem Task(string title, DateTime due, bool done = false) => new() { CourseId = course, Title = title, Due = due, Done = done };
+        data.Tasks.AddRange(new[]
+        {
+            Task("late", new DateTime(2026, 10, 23, 23, 59, 0)),
+            Task("early", new DateTime(2026, 10, 19, 0, 0, 0)),
+            Task("done", new DateTime(2026, 10, 21, 9, 0, 0), done: true),
+            Task("before", new DateTime(2026, 10, 18, 23, 59, 0)),
+            Task("after", new DateTime(2026, 10, 24, 0, 0, 0)),
+        });
+
+        var due = ScheduleQueries.DueBetween(data, new DateTime(2026, 10, 19), new DateTime(2026, 10, 23, 12, 0, 0));
+        Assert.Equal(new[] { "early", "late" }, due.Select(t => t.Title));
     }
 }
