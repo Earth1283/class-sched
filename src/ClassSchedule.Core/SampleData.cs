@@ -9,6 +9,8 @@ public static class SampleData
         data.Settings.TermName = "Sample term";
         data.Settings.TermStart = ScheduleQueries.WeekStart(today).AddDays(-7 * 8);
         data.Settings.TermEnd = data.Settings.TermStart.AddDays(7 * 15 - 3);
+        var reading = data.Settings.TermStart.AddDays(7 * 11);
+        data.Settings.Breaks.Add(new TermBreak { Name = "Fall break", Start = reading, End = reading.AddDays(4) });
 
         Course Add(string code, string name, string who, int credits, string color)
         {

@@ -20,7 +20,8 @@ public static class SidePanels
         return panel;
     }
 
-    public static UIElement NowCard(ScheduleData data, DateTime now)
+    /// <param name="animate">Whether the progress bar sweeps in. The clock redraws this card every 30 seconds, and that must not replay it.</param>
+    public static UIElement NowCard(ScheduleData data, DateTime now, bool animate = true)
     {
         var info = ScheduleQueries.Now(data, now);
         var stack = new StackPanel();
@@ -49,7 +50,7 @@ public static class SidePanels
 
             var span = (cur.Session.End - cur.Session.Start).TotalMinutes;
             var done = Math.Clamp((now.TimeOfDay - cur.Session.Start).TotalMinutes / span, 0, 1);
-            stack.Children.Add(ProgressBar(done, key));
+            stack.Children.Add(ProgressBar(done, key, animate));
 
             var foot = new Grid();
             foot.Children.Add(Ui.Text(TimeText.Format(cur.Session.Start), 11.5));
@@ -60,7 +61,8 @@ public static class SidePanels
         }
         else
         {
-            stack.Children.Add(Ui.Caption("No class right now"));
+            var off = TermCalendar.Of(data.Settings, now);
+            stack.Children.Add(Ui.Caption(TermCalendar.ClassesRun(data.Settings, now) ? "No class right now" : $"No classes today · {off.Label}"));
         }
 
         if (info.Next is { } next && info.NextStart is { } at)
@@ -78,7 +80,7 @@ public static class SidePanels
         return Card(stack);
     }
 
-    private static UIElement ProgressBar(double fraction, string colorKey)
+    private static UIElement ProgressBar(double fraction, string colorKey, bool animate)
     {
         var track = new Border { Height = 4, CornerRadius = new CornerRadius(2), Margin = new Thickness(0, 14, 0, 8), ClipToBounds = true };
         track.SetResourceReference(Border.BackgroundProperty, "Brush.S4");
@@ -88,9 +90,10 @@ public static class SidePanels
         fill.RenderTransform = scale;
         track.Child = fill;
         track.SizeChanged += (_, e) => fill.Width = e.NewSize.Width;
-        track.Loaded += (_, _) => scale.BeginAnimation(ScaleTransform.ScaleXProperty,
-            new DoubleAnimation(0, fraction, TimeSpan.FromMilliseconds(1200)) { EasingFunction = Ui.Smooth });
         scale.ScaleX = fraction;
+        if (animate)
+            track.Loaded += (_, _) => scale.BeginAnimation(ScaleTransform.ScaleXProperty,
+                new DoubleAnimation(0, fraction, TimeSpan.FromMilliseconds(1200)) { EasingFunction = Ui.Smooth });
         return track;
     }
 
@@ -150,7 +153,11 @@ public static class SidePanels
             list.Children.Add(new Border { Padding = new Thickness(8, 6, 8, 6), Child = row });
         }
 
-        if (list.Children.Count == 0) list.Children.Add(Ui.Text("Nothing scheduled today.", 13, "Brush.Ink4"));
+        if (list.Children.Count == 0)
+        {
+            var off = TermCalendar.Of(data.Settings, now);
+            list.Children.Add(Ui.Text(TermCalendar.ClassesRun(data.Settings, now) ? "Nothing scheduled today." : $"{off.Label}. No classes today.", 13, "Brush.Ink4"));
+        }
         stack.Children.Add(list);
         return Card(stack);
     }
@@ -241,7 +248,7 @@ public static class SidePanels
         };
     }
 
-    public static UIElement CoursesList(ScheduleData data, Action<Course> onToggle, Guid? popped = null)
+    public static UIElement CoursesList(ScheduleData data, Action<Course> onToggle, Action<Course, FrameworkElement> onContext, Guid? popped = null)
     {
         var stack = new StackPanel();
         var title = Ui.Text("My courses", 14, "Brush.Ink", FontWeights.Medium, "Font.Display");
@@ -276,10 +283,15 @@ public static class SidePanels
             row.Children.Add(label);
             row.Children.Add(hours);
 
-            var button = new Button { Content = row, Height = Ui.Row(34, 28), Padding = new Thickness(4, 0, 8, 0), ToolTip = course.Visible ? "Hide from the schedule" : "Show on the schedule" };
+            var button = new Button { Content = row, Height = Ui.Row(34, 28), Padding = new Thickness(4, 0, 8, 0), ToolTip = (course.Visible ? "Hide from the schedule" : "Show on the schedule") + ". Right-click for more." };
             button.SetResourceReference(FrameworkElement.StyleProperty, "MenuItem");
             button.HorizontalContentAlignment = HorizontalAlignment.Stretch;
             button.Click += (_, _) => onToggle(course);
+            button.MouseRightButtonUp += (_, e) =>
+            {
+                onContext(course, button);
+                e.Handled = true;
+            };
             stack.Children.Add(button);
         }
         return stack;

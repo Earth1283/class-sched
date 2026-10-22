@@ -51,12 +51,24 @@ public sealed class TaskItem
     public bool Done { get; set; }
 }
 
+/// <summary>A stretch of days with no classes inside the term, such as a holiday or reading week. Both ends are included.</summary>
+public sealed class TermBreak
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = "Break";
+    public DateTime Start { get; set; }
+    public DateTime End { get; set; }
+
+    public bool Covers(DateTime date) => date.Date >= Start.Date && date.Date <= End.Date;
+}
+
 public sealed class Settings
 {
     // Term (travels with the schedule file)
     public string TermName { get; set; } = "My term";
     public DateTime TermStart { get; set; } = DateTime.Today;
     public DateTime TermEnd { get; set; } = DateTime.Today.AddDays(15 * 7);
+    public List<TermBreak> Breaks { get; set; } = new();
 
     // General
     /// <summary>"Week", "Day" or "List".</summary>
@@ -90,6 +102,9 @@ public sealed class Settings
     public string CardDetail { get; set; } = "Fit";
     public bool ShowNowLine { get; set; } = true;
     public bool DimPast { get; set; }
+
+    /// <summary>Draw classes in weeks before and after the term too. Breaks stay empty either way.</summary>
+    public bool ShowOutsideTerm { get; set; }
 
     // New classes
     public int NewClassMinutes { get; set; } = 40;
@@ -149,11 +164,35 @@ public sealed class Settings
     public bool WidgetShowDue { get; set; } = true;
     public bool WidgetShowTomorrow { get; set; }
 
+    /// <summary>"Card" (solid), "Glass" (see-through with an outline) or "Minimal" (no background, just text).</summary>
+    public string WidgetStyle { get; set; } = "Card";
+
+    /// <summary>"Match" (the app's theme), "Light" or "Dark".</summary>
+    public string WidgetTheme { get; set; } = "Match";
+
+    /// <summary>Size of the whole widget in percent, 80 to 150.</summary>
+    public int WidgetScale { get; set; } = 100;
+
+    /// <summary>Corner radius of the card in pixels, 0 to 32.</summary>
+    public int WidgetRadius { get; set; } = 20;
+    public bool WidgetShadow { get; set; } = true;
+    public bool WidgetShowHeader { get; set; } = true;
+    public bool WidgetShowClock { get; set; }
+    public bool WidgetShowProgress { get; set; } = true;
+    public bool WidgetShowLocation { get; set; } = true;
+
+    /// <summary>The most class rows to list; 0 shows them all.</summary>
+    public int WidgetMaxRows { get; set; }
+    public bool WidgetLocked { get; set; }
+
+    /// <summary>Hide the widget once nothing is left today, and bring it back the next day with classes.</summary>
+    public bool WidgetHideWhenDone { get; set; }
+
     // Data
     public bool BackupsEnabled { get; set; }
     public int BackupCount { get; set; } = 5;
 
-    private static readonly string[] TermFields = { nameof(TermName), nameof(TermStart), nameof(TermEnd) };
+    private static readonly string[] TermFields = { nameof(TermName), nameof(TermStart), nameof(TermEnd), nameof(Breaks) };
 
     private static readonly string[] WindowFields =
         { nameof(WindowLeft), nameof(WindowTop), nameof(WindowWidth), nameof(WindowHeight), nameof(WindowMaximized) };
@@ -209,6 +248,59 @@ public sealed class ScheduleData
         Courses.Clear();
         Sessions.Clear();
         Tasks.Clear();
+    }
+
+    /// <summary>Empties the schedule like <see cref="Clear"/> and returns a way to bring everything back.</summary>
+    public Action ClearWithUndo()
+    {
+        var courses = Courses.ToList();
+        var sessions = Sessions.ToList();
+        var tasks = Tasks.ToList();
+        Clear();
+        return () =>
+        {
+            if (Courses.Count + Sessions.Count + Tasks.Count > 0) return;
+            Courses.AddRange(courses);
+            Sessions.AddRange(sessions);
+            Tasks.AddRange(tasks);
+        };
+    }
+
+    /// <summary>Removes an assignment or exam and returns a way to put it back in its place, or null when it wasn't found.</summary>
+    public Action? RemoveTaskWithUndo(Guid taskId)
+    {
+        var task = Tasks.FirstOrDefault(t => t.Id == taskId);
+        if (task is null) return null;
+
+        var index = Tasks.IndexOf(task);
+        Tasks.Remove(task);
+        return () =>
+        {
+            if (Tasks.Any(t => t.Id == task.Id)) return;
+            Tasks.Insert(Math.Min(index, Tasks.Count), task);
+        };
+    }
+
+    /// <summary>Removes a course with its classes and its assignments and exams, and returns a way to put them all back.</summary>
+    public Action? RemoveCourseWithUndo(Guid courseId)
+    {
+        var course = FindCourse(courseId);
+        if (course is null) return null;
+
+        var courseIndex = Courses.IndexOf(course);
+        var sessions = Sessions.Select((s, i) => (Item: s, Index: i)).Where(x => x.Item.CourseId == courseId).ToList();
+        var tasks = Tasks.Select((t, i) => (Item: t, Index: i)).Where(x => x.Item.CourseId == courseId).ToList();
+        Courses.Remove(course);
+        Sessions.RemoveAll(s => s.CourseId == courseId);
+        Tasks.RemoveAll(t => t.CourseId == courseId);
+
+        return () =>
+        {
+            if (FindCourse(courseId) is not null) return;
+            Courses.Insert(Math.Min(courseIndex, Courses.Count), course);
+            foreach (var (item, index) in sessions) Sessions.Insert(Math.Min(index, Sessions.Count), item);
+            foreach (var (item, index) in tasks) Tasks.Insert(Math.Min(index, Tasks.Count), item);
+        };
     }
 
     /// <summary>Takes one weekday out of a class that meets on several; the whole class goes when it was the only day.</summary>

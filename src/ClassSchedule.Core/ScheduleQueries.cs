@@ -55,6 +55,10 @@ public static class ScheduleQueries
         Placed(data, onlyVisible).Where(p => p.Session.Days.Contains(day))
             .OrderBy(p => p.Session.Start).ThenBy(p => p.Session.End).ToList();
 
+    /// <summary>The classes that meet on one date: none on a break, and none outside the term unless the setting shows them.</summary>
+    public static IReadOnlyList<PlacedSession> SessionsOnDate(ScheduleData data, DateTime date, bool onlyVisible = true) =>
+        TermCalendar.ClassesRun(data.Settings, date) ? SessionsOn(data, date.DayOfWeek, onlyVisible) : Array.Empty<PlacedSession>();
+
     /// <summary>Whole hours the grid should show: 8 AM to 5 PM (or the range chosen in settings), widened to fit every class.</summary>
     public static (int StartHour, int EndHour) HourRange(ScheduleData data)
     {
@@ -68,15 +72,18 @@ public static class ScheduleQueries
         return (Math.Clamp(start, 0, 23), Math.Clamp(end, start + 1, 24));
     }
 
+    /// <summary>How far ahead “next class” looks, which is long enough to get past a week-long break.</summary>
+    private const int NextClassLookahead = 60;
+
     public static NowInfo Now(ScheduleData data, DateTime now)
     {
-        var today = SessionsOn(data, now.DayOfWeek, onlyVisible: false);
+        var today = SessionsOnDate(data, now, onlyVisible: false);
         var current = today.FirstOrDefault(p => p.Session.Start <= now.TimeOfDay && now.TimeOfDay < p.Session.End);
 
-        for (var offset = 0; offset <= 7; offset++)
+        for (var offset = 0; offset <= NextClassLookahead; offset++)
         {
             var date = now.Date.AddDays(offset);
-            var sessions = offset == 0 ? today : SessionsOn(data, date.DayOfWeek, onlyVisible: false);
+            var sessions = offset == 0 ? today : SessionsOnDate(data, date, onlyVisible: false);
             var next = sessions.FirstOrDefault(p => date + p.Session.Start > now);
             if (next is not null) return new NowInfo(current, next, date + next.Session.Start);
         }
@@ -84,7 +91,7 @@ public static class ScheduleQueries
     }
 
     public static IReadOnlyList<AgendaItem> Agenda(ScheduleData data, DateTime now) =>
-        SessionsOn(data, now.DayOfWeek, onlyVisible: false)
+        SessionsOnDate(data, now, onlyVisible: false)
             .Select(p => new AgendaItem(p,
                 p.Session.End <= now.TimeOfDay ? AgendaStatus.Done
                 : p.Session.Start <= now.TimeOfDay ? AgendaStatus.Now

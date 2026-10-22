@@ -14,7 +14,7 @@ using ClassSchedule.Core;
 namespace ClassSchedule.Views;
 
 public sealed record SettingsHost(
-    Action Changed, Action ResetWidgetPosition, Action BackUpNow, Action ShowFile, Func<string> FilePath,
+    Action Changed, Action ResetWidgetPosition, Action<bool, bool> MoveWidget, Action BackUpNow, Action ShowFile, Func<string> FilePath,
     Action OpenFile, Action SaveAs, Func<ScheduleData> Data);
 
 /// <summary>Every preference in one place: sections, search, a live preview, and changes that apply as you make them.</summary>
@@ -47,6 +47,13 @@ public sealed class SettingsWindow : Window
     private readonly TextBlock searchHint = new();
     private readonly ScheduleGridView previewGrid = new() { IsHitTestVisible = false };
     private readonly Border previewFrame = new() { Width = 540, Height = 560 };
+    private readonly WidgetCard widgetPreview = new() { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false };
+    private readonly Border widgetStage = new() { CornerRadius = new CornerRadius(16), Height = 520, ClipToBounds = true, Visibility = Visibility.Collapsed };
+    private readonly Border weekPanel = new();
+    private readonly TextBlock previewHint = new();
+    private readonly StackPanel wallpaperChoice = new() { Orientation = Orientation.Horizontal };
+    private readonly Border wallpaperPill = new() { CornerRadius = new CornerRadius(18), BorderThickness = new Thickness(1), Padding = new Thickness(1), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 12, 0, 0) };
+    private bool darkWallpaper = true;
     private readonly ScheduleData sampleData = SampleData.Create(DateTime.Today);
     private readonly Button resetAll;
     private readonly TextBlock footNote;
@@ -142,15 +149,56 @@ public sealed class SettingsWindow : Window
         UpdateEnabled();
     }
 
+    private bool ShowingWidget => query.Length == 0 && sections[current].Name == "Desktop widget";
+
     private void RefreshPreview()
     {
         var previewData = host.Data().Sessions.Count > 0 ? host.Data() : sampleData;
         previewData.Settings = Settings;
         var now = DateTime.Now;
+
+        weekPanel.Visibility = ShowingWidget ? Visibility.Collapsed : Visibility.Visible;
+        widgetStage.Visibility = wallpaperPill.Visibility = ShowingWidget ? Visibility.Visible : Visibility.Collapsed;
+        previewHint.Text = ShowingWidget
+            ? "This is the widget as it will look on your desktop, drawn at a moment when a class is in session. Switch the wallpaper behind it to check Glass and Minimal on light and dark backgrounds."
+            : "This is your week, drawn the way these settings will draw it. Clock, week start, hours, class cards, theme, accent and colors update as you change them.";
+
+        if (ShowingWidget)
+        {
+            widgetStage.Background = Wallpaper(darkWallpaper);
+            widgetPreview.Apply(Settings);
+            widgetPreview.Refresh(previewData, WidgetMoment(previewData, now));
+            return;
+        }
+
         var monday = ScheduleQueries.WeekStart(now);
         var dates = ScheduleQueries.VisibleDays(previewData).Select(d => monday.AddDays(DayParser.Order(d))).ToList();
         previewFrame.Width = Math.Max(540, 80 + 90 * dates.Count);
         previewGrid.Render(previewData, dates, now, null, keepScroll: true);
+    }
+
+    /// <summary>Now, or when nothing is left today, ten minutes into the next day's first class, so the preview always has a class in session.</summary>
+    private static DateTime WidgetMoment(ScheduleData data, DateTime now)
+    {
+        if (ScheduleQueries.Agenda(data, now).Any(i => i.Status != AgendaStatus.Done)) return now;
+        for (var i = 1; i <= 14; i++)
+        {
+            var date = now.Date.AddDays(i);
+            if (ScheduleQueries.SessionsOnDate(data, date, onlyVisible: false) is { Count: > 0 } day)
+                return date + day[0].Session.Start + TimeSpan.FromMinutes(10);
+        }
+        return now;
+    }
+
+    private static Brush Wallpaper(bool dark)
+    {
+        var brush = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 1) };
+        var stops = dark
+            ? new[] { ("#1B2B3A", 0.0), ("#3B3A66", 0.55), ("#5A3E6B", 1.0) }
+            : new[] { ("#F3E3C3", 0.0), ("#CFE3EA", 0.55), ("#B7D3C4", 1.0) };
+        foreach (var (color, offset) in stops) brush.GradientStops.Add(new GradientStop((Color)ColorConverter.ConvertFromString(color), offset));
+        brush.Freeze();
+        return brush;
     }
 
     private static PropertyInfo Prop(string name) =>
@@ -350,6 +398,10 @@ public sealed class SettingsWindow : Window
                 HoursRow(),
                 Choice("Hour height", "Taller hours leave room for more text on short classes.", "HourHeightMode", ("Compact", "Compact"), ("Comfortable", "Comfortable"), ("Spacious", "Spacious"))
             }),
+            new Group("Term", new()
+            {
+                Toggle("Show classes outside the term", "Weeks before and after the term dates are shaded and empty. Breaks stay empty either way.", "ShowOutsideTerm")
+            }),
             new Group("Class cards", new()
             {
                 Choice("What a card shows", "A line only appears when it fits.", "CardDetail", ("Code", "Code only"), ("Room", "Code + room"), ("Fit", "Everything that fits")),
@@ -422,22 +474,43 @@ public sealed class SettingsWindow : Window
         }));
 
         var widgetOn = (Func<bool>)(() => Settings.WidgetEnabled);
+        var notMinimal = (Func<bool>)(() => Settings.WidgetStyle != "Minimal");
         sections.Add(new Section("Desktop widget", "Icon.Grid", "Today's schedule, kept behind your windows.", new()
         {
             new Group("Widget", new()
             {
                 Toggle("Show on the desktop", "", "WidgetEnabled"),
                 Toggle("Keep behind other windows", "", "WidgetBehind", widgetOn),
-                Choice("Size", "", "WidgetCompact", (false, "Comfortable"), (true, "Compact")),
+                Toggle("Lock position", "Stops it being dragged by accident. Its right-click menu can still move it to a corner.", "WidgetLocked", widgetOn),
+                Choice("Layout", "Compact leaves out the room and the progress bar.", "WidgetCompact", (false, "Comfortable"), (true, "Compact"))
+            }),
+            new Group("Look", new()
+            {
+                Choice("Style", "Minimal has no background, just the text, for sitting straight on a wallpaper.", "WidgetStyle", ("Card", "Card"), ("Glass", "Glass"), ("Minimal", "Minimal")),
+                Choice("Colors", "Match follows the app. Pick Light or Dark to suit the wallpaper behind the widget.", "WidgetTheme", ("Match", "Match the app"), ("Light", "Light"), ("Dark", "Dark")),
+                Count("Size", "Scales the whole widget.", "WidgetScale", new[] { 80, 90, 100, 110, 120, 130, 140, 150 }, "%"),
+                Count("Corner roundness", "", "WidgetRadius", new[] { 0, 4, 8, 12, 16, 20, 24, 28, 32 }, " px", notMinimal),
                 Choice("Opacity", "", () => new[] { 100, 90, 75, 60 }.OrderBy(o => Math.Abs(o - Settings.WidgetOpacity)).First(),
-                    v => Set("WidgetOpacity", v), new[] { (100, "100%"), (90, "90%"), (75, "75%"), (60, "60%") }, ResetOf("WidgetOpacity"), widgetOn)
+                    v => Set("WidgetOpacity", v), new[] { (100, "100%"), (90, "90%"), (75, "75%"), (60, "60%") }, ResetOf("WidgetOpacity"), notMinimal),
+                Toggle("Shadow", "Under the card, or behind the text in Minimal.", "WidgetShadow")
             }),
             new Group("Content", new()
             {
-                Toggle("Show classes that already happened", "", "WidgetShowDone", widgetOn),
-                Toggle("Show “Next due”", "The next assignment or exam, along the bottom.", "WidgetShowDue", widgetOn),
-                Toggle("Show tomorrow when today is done", "", "WidgetShowTomorrow", widgetOn),
-                ButtonRow("Position", "Put the widget back in the top-right corner.", "Reset position", host.ResetWidgetPosition, widgetOn)
+                Toggle("Show the date", "“Today” and the date along the top.", "WidgetShowHeader"),
+                Toggle("Show the time", "A clock in the top corner.", "WidgetShowClock"),
+                Pick("Classes to list", "Past classes drop off first, then the last ones are folded into “+ 2 more”.", "WidgetMaxRows",
+                    new[] { (0, "All of them"), (3, "3"), (4, "4"), (5, "5"), (6, "6"), (8, "8"), (10, "10") }),
+                Toggle("Show classes that already happened", "", "WidgetShowDone"),
+                Toggle("Show where each class is", "", "WidgetShowLocation"),
+                Toggle("Show progress for the class in session", "A bar and the time left.", "WidgetShowProgress"),
+                Toggle("Show “Next due”", "The next assignment or exam, along the bottom.", "WidgetShowDue"),
+                Toggle("Show tomorrow when today is done", "", "WidgetShowTomorrow"),
+                Toggle("Hide it when the day is done", "The widget goes away once nothing is left today and returns on the next day with classes. Start Class Schedule again to open the window while it is hidden.", "WidgetHideWhenDone")
+            }),
+            new Group("Position", new()
+            {
+                CornersRow(),
+                ButtonRow("Default spot", "Put the widget back in the top-right corner.", "Reset position", host.ResetWidgetPosition, widgetOn)
             })
         }));
 
@@ -453,8 +526,9 @@ public sealed class SettingsWindow : Window
             new Group("Term", new()
             {
                 TextRow("Term name", "", () => Settings.TermName, CommitTermName),
-                TextRow("Starts", "Used for the week count and for how far exported events repeat.", () => Settings.TermStart.ToString("d", CultureInfo.CurrentCulture), text => CommitTermDate(text, start: true)),
-                TextRow("Ends", "", () => Settings.TermEnd.ToString("d", CultureInfo.CurrentCulture), text => CommitTermDate(text, start: false))
+                TextRow("Starts", "Classes show only inside the term. Also used for the week count and for how far exported events repeat.", () => Settings.TermStart.ToString("d", CultureInfo.CurrentCulture), text => CommitTermDate(text, start: true)),
+                TextRow("Ends", "", () => Settings.TermEnd.ToString("d", CultureInfo.CurrentCulture), text => CommitTermDate(text, start: false)),
+                BreaksRow()
             })
         }));
     }
@@ -594,6 +668,81 @@ public sealed class SettingsWindow : Window
             return panel;
         }
     };
+
+    private Row CornersRow() => new()
+    {
+        Label = "Move to a corner", Hint = "Snaps the widget to a corner of the screen.", Stacked = true, Enabled = () => Settings.WidgetEnabled,
+        Build = () =>
+        {
+            var panel = new WrapPanel();
+            foreach (var (label, right, bottom) in new[] { ("Top left", false, false), ("Top right", true, false), ("Bottom left", false, true), ("Bottom right", true, true) })
+            {
+                var button = Ui.Button(label, null, "BtnSecondary", 34);
+                button.Margin = new Thickness(0, 0, 8, 6);
+                button.Click += (_, _) => host.MoveWidget(right, bottom);
+                panel.Children.Add(button);
+            }
+            return panel;
+        }
+    };
+
+    private Row BreaksRow() => new()
+    {
+        Label = "Breaks", Stacked = true,
+        Hint = "Holidays and reading weeks inside the term. They are shaded in the schedule, and left out of reminders and calendar exports.",
+        Build = () =>
+        {
+            var stack = new StackPanel { MinWidth = 380 };
+            foreach (var item in Settings.Breaks.OrderBy(b => b.Start).ToList()) stack.Children.Add(BreakLine(item));
+
+            var add = Ui.Button("Add a break…", "Icon.Plus", "BtnSecondary", 34);
+            add.HorizontalAlignment = HorizontalAlignment.Left;
+            add.Margin = new Thickness(0, Settings.Breaks.Count > 0 ? 10 : 0, 0, 0);
+            add.Click += (_, _) =>
+            {
+                var from = Settings.TermStart.Date > DateTime.Today ? Settings.TermStart.Date : DateTime.Today;
+                if (new BreakDialog(this, host.Data(), null, from, from).ShowDialog() != true) return;
+                Changed();
+                Render(keepScroll: true);
+            };
+            stack.Children.Add(add);
+            return stack;
+        }
+    };
+
+    private UIElement BreakLine(TermBreak item)
+    {
+        var dates = item.Start.Date == item.End.Date
+            ? item.Start.ToString("ddd, MMM d, yyyy")
+            : item.Start.Year == item.End.Year ? $"{item.Start:MMM d} – {item.End:MMM d, yyyy}" : $"{item.Start:MMM d, yyyy} – {item.End:MMM d, yyyy}";
+        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(Ui.Text(item.Name, 13.5, "Brush.Ink", FontWeights.Medium));
+        text.Children.Add(Ui.Text(dates, 12.5, "Brush.Ink3"));
+
+        var edit = Ui.IconButton("Icon.Edit", $"Edit {item.Name}");
+        var remove = Ui.IconButton("Icon.Trash", $"Remove {item.Name}");
+        edit.Width = edit.Height = remove.Width = remove.Height = 32;
+        edit.Click += (_, _) =>
+        {
+            if (new BreakDialog(this, host.Data(), item).ShowDialog() != true) return;
+            Changed();
+            Render(keepScroll: true);
+        };
+        remove.Click += (_, _) =>
+        {
+            Settings.Breaks.Remove(item);
+            Changed();
+            Render(keepScroll: true);
+        };
+
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        buttons.Children.Add(edit);
+        buttons.Children.Add(remove);
+        var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
+        row.Children.Add(text);
+        row.Children.Add(buttons);
+        return row;
+    }
 
     private static Row NoteRow(string text) => new() { Label = text, Note = true, Build = () => new Border() };
 
@@ -750,13 +899,33 @@ public sealed class SettingsWindow : Window
 
         previewFrame.Child = previewGrid;
         var scaled = new Viewbox { Stretch = Stretch.Uniform, StretchDirection = StretchDirection.DownOnly, Child = previewFrame };
-        stack.Children.Add(Ui.Panel(scaled, new Thickness(0, 0, 0, 0), 14));
+        weekPanel.Child = Ui.Panel(scaled, new Thickness(0, 0, 0, 0), 14);
+        stack.Children.Add(weekPanel);
 
-        var hint = Ui.Text("This is your week, drawn the way these settings will draw it. Clock, week start, hours, class cards, theme, accent and colors update as you change them.", 12.5, "Brush.Ink3");
-        hint.TextWrapping = TextWrapping.Wrap;
-        hint.TextTrimming = TextTrimming.None;
-        hint.Margin = new Thickness(2, 12, 2, 0);
-        stack.Children.Add(hint);
+        widgetStage.Child = widgetPreview;
+        stack.Children.Add(widgetStage);
+
+        var group = Guid.NewGuid().ToString();
+        foreach (var (dark, text) in new[] { (true, "Dark wallpaper"), (false, "Light wallpaper") })
+        {
+            var button = new RadioButton { GroupName = group, Content = text, IsChecked = dark == darkWallpaper };
+            button.SetResourceReference(StyleProperty, "SegItem");
+            button.Checked += (_, _) =>
+            {
+                darkWallpaper = dark;
+                RefreshPreview();
+            };
+            wallpaperChoice.Children.Add(button);
+        }
+        wallpaperPill.Child = wallpaperChoice;
+        wallpaperPill.SetResourceReference(Border.BorderBrushProperty, "Brush.LineStrong");
+        stack.Children.Add(wallpaperPill);
+
+        previewHint.FontSize = 12.5;
+        previewHint.TextWrapping = TextWrapping.Wrap;
+        previewHint.Margin = new Thickness(2, 12, 2, 0);
+        previewHint.SetResourceReference(TextBlock.ForegroundProperty, "Brush.Ink3");
+        stack.Children.Add(previewHint);
 
         var panel = new Border { Child = stack, BorderThickness = new Thickness(1, 0, 0, 0) };
         panel.SetResourceReference(Border.BorderBrushProperty, "Brush.Line");
@@ -855,6 +1024,7 @@ public sealed class SettingsWindow : Window
         }
 
         UpdateEnabled();
+        RefreshPreview();
         if (keepScroll)
         {
             mainScroll.UpdateLayout();

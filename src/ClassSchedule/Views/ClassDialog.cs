@@ -8,8 +8,8 @@ using ClassSchedule.Core;
 
 namespace ClassSchedule.Views;
 
-/// <summary>Starting values for a new class: a day and time from a right-click, or a copy of an existing class.</summary>
-public sealed record ClassPrefill(DayOfWeek? Day = null, TimeSpan? Start = null, ClassSession? CopyOf = null);
+/// <summary>Starting values for a new class: a day and time from a right-click, a copy of an existing class, or the course it belongs to.</summary>
+public sealed record ClassPrefill(DayOfWeek? Day = null, TimeSpan? Start = null, ClassSession? CopyOf = null, Course? Course = null);
 
 public sealed class ClassDialog : DialogWindow
 {
@@ -39,7 +39,7 @@ public sealed class ClassDialog : DialogWindow
         this.data = data;
         this.existing = existing;
         var source = existing ?? prefill?.CopyOf;
-        var course = source is null ? null : data.FindCourse(source.CourseId);
+        var course = source is null ? prefill?.Course : data.FindCourse(source.CourseId);
         var begins = existing?.Start ?? prefill?.Start ?? prefill?.CopyOf?.Start;
         var finishes = existing?.End ?? (prefill?.Start is { } at ? at + ClassDefaults.Length : prefill?.CopyOf?.End);
 
@@ -94,7 +94,7 @@ public sealed class ClassDialog : DialogWindow
         if (existing is not null)
         {
             var delete = Ui.Button("Delete", null, "BtnQuiet");
-            delete.Click += (_, _) => { data.RemoveSession(existing.Id); DialogResult = true; };
+            delete.Click += (_, _) => { UndoDelete = data.RemoveSessionWithUndo(existing.Id); DialogResult = true; };
             AddLeftAction(delete);
         }
         else
@@ -110,6 +110,9 @@ public sealed class ClassDialog : DialogWindow
     }
 
     public bool AddAnother { get; private set; }
+
+    /// <summary>Set when the class was deleted from the dialog; calling it brings the class back.</summary>
+    public Action? UndoDelete { get; private set; }
 
     private void AddAdvanced(int basicMark)
     {

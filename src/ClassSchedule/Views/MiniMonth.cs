@@ -13,7 +13,7 @@ public static class MiniMonth
 {
     private const double Cell = 32;
 
-    public static UIElement Build(DateTime month, DateTime today, DateTime weekStart, int shownDays, Action<DateTime> onPick, Action<int> onStep)
+    public static UIElement Build(DateTime month, DateTime today, DateTime weekStart, int shownDays, Settings settings, Action<DateTime> onPick, Action<int> onStep)
     {
         var first = new DateTime(month.Year, month.Month, 1);
         var root = new StackPanel();
@@ -51,17 +51,17 @@ public static class MiniMonth
         {
             var date = start.AddDays(i);
             if (i >= 35 && date.Month != first.Month) { grid.Children.Add(new Border { Height = Cell }); continue; }
-            grid.Children.Add(Day(date, first.Month, today, weekStart, shownDays, onPick));
+            grid.Children.Add(Day(date, first.Month, today, weekStart, shownDays, TermCalendar.Of(settings, date), onPick));
         }
         root.Children.Add(grid);
         return root;
     }
 
-    private static UIElement Day(DateTime date, int month, DateTime today, DateTime weekStart, int shownDays, Action<DateTime> onPick)
+    private static UIElement Day(DateTime date, int month, DateTime today, DateTime weekStart, int shownDays, DayStatus status, Action<DateTime> onPick)
     {
         var isToday = date.Date == today.Date;
         var inWeek = date.Date >= weekStart.Date && date.Date < weekStart.Date.AddDays(shownDays);
-        var foreground = isToday ? "Brush.OnPrimary" : date.Month == month ? "Brush.Ink" : "Brush.Ink4";
+        var foreground = isToday ? "Brush.OnPrimary" : date.Month == month && !status.IsOff ? "Brush.Ink" : "Brush.Ink4";
 
         var label = Ui.Text(date.Day.ToString(), 12, foreground, isToday ? FontWeights.Medium : FontWeights.Normal);
         label.HorizontalAlignment = HorizontalAlignment.Center;
@@ -85,6 +85,15 @@ public static class MiniMonth
             cell.MouseEnter += (_, _) => { if (!isToday) disc.SetResourceReference(Border.BackgroundProperty, "Brush.Hover"); };
             cell.MouseLeave += (_, _) => { if (!isToday) disc.Background = Brushes.Transparent; };
         }
+        if (status.Kind == DayKind.Break)
+        {
+            var mark = new System.Windows.Shapes.Ellipse { Width = 4, Height = 4, VerticalAlignment = VerticalAlignment.Bottom, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 1), IsHitTestVisible = false };
+            mark.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "Brush.Ink3");
+            var inner = cell.Child;
+            cell.Child = null;
+            cell.Child = new Grid { Children = { inner, mark } };
+        }
+        if (status.IsOff) cell.ToolTip = status.Label;
         cell.MouseLeftButtonUp += (_, e) => { onPick(date); e.Handled = true; };
         return cell;
     }

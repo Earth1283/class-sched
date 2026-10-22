@@ -1036,3 +1036,266 @@ public class PaletteTests
         Assert.Equal(new[] { "Blue", "Green", "Orange", "Violet", "Rose", "Teal" }, CoursePalette.Keys.Take(6));
     }
 }
+
+public class TermCalendarTests
+{
+    private static readonly DateTime Tuesday = new(2026, 10, 20, 10, 52, 0);
+
+    private static ScheduleData Term()
+    {
+        var data = SampleData.Create(Tuesday);
+        data.Settings.TermStart = new DateTime(2026, 9, 1);
+        data.Settings.TermEnd = new DateTime(2026, 12, 11);
+        data.Settings.Breaks.Clear();
+        data.Settings.Breaks.Add(new TermBreak { Name = "Fall break", Start = new DateTime(2026, 10, 26), End = new DateTime(2026, 10, 28) });
+        return data;
+    }
+
+    [Fact]
+    public void Dates_are_before_in_after_or_on_a_break()
+    {
+        var s = Term().Settings;
+        Assert.Equal(DayKind.BeforeTerm, TermCalendar.Of(s, new DateTime(2026, 8, 31)).Kind);
+        Assert.Equal(DayKind.InTerm, TermCalendar.Of(s, new DateTime(2026, 9, 1)).Kind);
+        Assert.Equal(DayKind.InTerm, TermCalendar.Of(s, new DateTime(2026, 12, 11, 18, 0, 0)).Kind);
+        Assert.Equal(DayKind.AfterTerm, TermCalendar.Of(s, new DateTime(2026, 12, 12)).Kind);
+        var off = TermCalendar.Of(s, new DateTime(2026, 10, 28, 23, 0, 0));
+        Assert.Equal(DayKind.Break, off.Kind);
+        Assert.Equal("Fall break", off.Label);
+        Assert.Equal(DayKind.InTerm, TermCalendar.Of(s, new DateTime(2026, 10, 29)).Kind);
+    }
+
+    [Fact]
+    public void Classes_skip_breaks_and_days_outside_the_term()
+    {
+        var data = Term();
+        Assert.NotEmpty(ScheduleQueries.SessionsOnDate(data, new DateTime(2026, 10, 21)));
+        Assert.Empty(ScheduleQueries.SessionsOnDate(data, new DateTime(2026, 10, 28)));
+        Assert.Empty(ScheduleQueries.SessionsOnDate(data, new DateTime(2026, 8, 26)));
+        Assert.Empty(ScheduleQueries.SessionsOnDate(data, new DateTime(2027, 1, 6)));
+    }
+
+    [Fact]
+    public void Showing_outside_the_term_keeps_breaks_empty()
+    {
+        var data = Term();
+        data.Settings.ShowOutsideTerm = true;
+        Assert.NotEmpty(ScheduleQueries.SessionsOnDate(data, new DateTime(2026, 8, 26)));
+        Assert.NotEmpty(ScheduleQueries.SessionsOnDate(data, new DateTime(2027, 1, 6)));
+        Assert.Empty(ScheduleQueries.SessionsOnDate(data, new DateTime(2026, 10, 28)));
+    }
+
+    [Fact]
+    public void Next_class_jumps_over_a_break()
+    {
+        var data = Term();
+        var friday = new DateTime(2026, 10, 23, 18, 0, 0);
+        var info = ScheduleQueries.Now(data, friday);
+        Assert.Null(info.Current);
+        Assert.Equal(new DateTime(2026, 10, 29, 10, 30, 0), info.NextStart);
+        Assert.Equal("MATH 240", info.Next?.Course.Code);
+    }
+
+    [Fact]
+    public void Nothing_is_on_the_agenda_during_a_break()
+    {
+        Assert.Empty(ScheduleQueries.Agenda(Term(), new DateTime(2026, 10, 27, 9, 0, 0)));
+    }
+
+    [Fact]
+    public void Reminders_stay_quiet_on_a_break()
+    {
+        var data = Term();
+        data.Tasks.Clear();
+        var monday = new DateTime(2026, 10, 26, 8, 55, 0);
+        Assert.Empty(ReminderPlanner.Due(data, monday, new HashSet<string>()));
+        Assert.Single(ReminderPlanner.Due(data, monday.AddDays(7), new HashSet<string>()));
+    }
+
+    [Fact]
+    public void Off_label_names_a_week_with_no_classes()
+    {
+        var s = Term().Settings;
+        var week = Enumerable.Range(0, 5).Select(i => new DateTime(2026, 10, 26).AddDays(i)).ToList();
+        Assert.Equal("", TermCalendar.OffLabel(s, week));
+        Assert.Equal("Fall break", TermCalendar.OffLabel(s, week.Take(3)));
+        Assert.Equal("No classes", TermCalendar.OffLabel(s, new[] { new DateTime(2026, 8, 31), new DateTime(2026, 10, 27) }));
+        Assert.Equal("", TermCalendar.OffLabel(s, Array.Empty<DateTime>()));
+    }
+
+    [Fact]
+    public void Breaks_are_cancelled_dates_in_the_export()
+    {
+        var data = Term();
+        var ics = IcsService.Export(data, new DateTime(2026, 10, 20, 0, 0, 0, DateTimeKind.Utc));
+        Assert.Contains("EXDATE:20261026T090000,20261028T090000", ics);
+        Assert.Contains("EXDATE:20261027T103000", ics);
+    }
+
+    [Fact]
+    public void Breaks_belong_to_the_term_not_to_preferences()
+    {
+        var mine = new Settings { Use24Hour = true };
+        var theirs = new Settings { TermName = "Spring" };
+        theirs.Breaks.Add(new TermBreak { Name = "Reading week" });
+        mine.KeepPreferencesFrom(theirs);
+        Assert.Empty(mine.Breaks);
+
+        theirs.Breaks[0].Start = new DateTime(2027, 2, 15);
+        theirs.ResetPreferences();
+        Assert.Single(theirs.Breaks);
+    }
+
+    [Fact]
+    public void Breaks_survive_the_round_trip_to_disk()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "cs-breaks-" + Guid.NewGuid().ToString("N") + ".json");
+        try
+        {
+            var store = new ScheduleStore(path);
+            store.Save(Term());
+            var back = store.Load(Tuesday);
+            var b = Assert.Single(back.Settings.Breaks);
+            Assert.Equal("Fall break", b.Name);
+            Assert.Equal(new DateTime(2026, 10, 28), b.End);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+}
+
+public class SessionEditTests
+{
+    private static (ScheduleData Data, ClassSession Mwf) Setup()
+    {
+        var data = SampleData.Create(new DateTime(2026, 10, 20));
+        return (data, data.Sessions.First(s => s.Days.Count == 3));
+    }
+
+    private static TimeSpan T(int h, int m = 0) => new(h, m, 0);
+
+    [Fact]
+    public void A_one_day_class_moves_in_place_and_can_be_undone()
+    {
+        var data = SampleData.Create(new DateTime(2026, 10, 20));
+        var art = data.Sessions.First(s => s.Days.SequenceEqual(new[] { DayOfWeek.Friday }));
+        var count = data.Sessions.Count;
+
+        var undo = SessionEdits.Reschedule(data, art.Id, DayOfWeek.Friday, DayOfWeek.Thursday, T(14), T(16), EditScope.AllDays);
+
+        Assert.NotNull(undo);
+        Assert.Equal(count, data.Sessions.Count);
+        Assert.Equal(new[] { DayOfWeek.Thursday }, art.Days);
+        Assert.Equal((T(14), T(16)), (art.Start, art.End));
+        undo!();
+        Assert.Equal(new[] { DayOfWeek.Friday }, art.Days);
+        Assert.Equal((T(13), new TimeSpan(15, 45, 0)), (art.Start, art.End));
+    }
+
+    [Fact]
+    public void A_time_change_can_reach_every_day_of_the_class()
+    {
+        var (data, mwf) = Setup();
+        var count = data.Sessions.Count;
+
+        Assert.NotNull(SessionEdits.Reschedule(data, mwf.Id, DayOfWeek.Wednesday, DayOfWeek.Wednesday, T(10), T(10, 50), EditScope.AllDays));
+
+        Assert.Equal(count, data.Sessions.Count);
+        Assert.Equal(3, mwf.Days.Count);
+        Assert.Equal((T(10), T(10, 50)), (mwf.Start, mwf.End));
+    }
+
+    [Fact]
+    public void A_time_change_for_one_day_splits_that_day_off()
+    {
+        var (data, mwf) = Setup();
+        var count = data.Sessions.Count;
+
+        var undo = SessionEdits.Reschedule(data, mwf.Id, DayOfWeek.Wednesday, DayOfWeek.Wednesday, T(10), T(10, 50), EditScope.ThisDay);
+
+        Assert.Equal(count + 1, data.Sessions.Count);
+        Assert.Equal(new[] { DayOfWeek.Monday, DayOfWeek.Friday }, mwf.Days);
+        Assert.Equal(T(9), mwf.Start);
+        var wednesday = data.Sessions[data.Sessions.IndexOf(mwf) + 1];
+        Assert.Equal(new[] { DayOfWeek.Wednesday }, wednesday.Days);
+        Assert.Equal((T(10), T(10, 50)), (wednesday.Start, wednesday.End));
+        Assert.Equal((mwf.CourseId, mwf.Kind, mwf.Location), (wednesday.CourseId, wednesday.Kind, wednesday.Location));
+
+        undo!();
+        Assert.Equal(count, data.Sessions.Count);
+        Assert.Equal(3, mwf.Days.Count);
+    }
+
+    [Fact]
+    public void Dragging_one_day_to_another_moves_only_that_day()
+    {
+        var (data, mwf) = Setup();
+
+        SessionEdits.Reschedule(data, mwf.Id, DayOfWeek.Wednesday, DayOfWeek.Thursday, T(9), T(9, 50), EditScope.AllDays);
+
+        Assert.Equal(new[] { DayOfWeek.Monday, DayOfWeek.Friday }, mwf.Days);
+        Assert.Contains(data.Sessions, s => s.CourseId == mwf.CourseId && s.Days.SequenceEqual(new[] { DayOfWeek.Thursday }) && s.Start == T(9));
+    }
+
+    [Fact]
+    public void Silly_or_unchanged_edits_are_refused()
+    {
+        var (data, mwf) = Setup();
+        Assert.Null(SessionEdits.Reschedule(data, mwf.Id, DayOfWeek.Monday, DayOfWeek.Monday, mwf.Start, mwf.End, EditScope.AllDays));
+        Assert.Null(SessionEdits.Reschedule(data, mwf.Id, DayOfWeek.Monday, DayOfWeek.Monday, T(9), T(9, 10), EditScope.AllDays));
+        Assert.Null(SessionEdits.Reschedule(data, mwf.Id, DayOfWeek.Monday, DayOfWeek.Monday, T(23), T(25), EditScope.AllDays));
+        Assert.Null(SessionEdits.Reschedule(data, mwf.Id, DayOfWeek.Tuesday, DayOfWeek.Monday, T(10), T(11), EditScope.AllDays));
+        Assert.Null(SessionEdits.Reschedule(data, Guid.NewGuid(), DayOfWeek.Monday, DayOfWeek.Monday, T(10), T(11), EditScope.AllDays));
+    }
+}
+
+public class RemovalUndoTests
+{
+    [Fact]
+    public void A_removed_task_comes_back_where_it_was()
+    {
+        var data = SampleData.Create(new DateTime(2026, 10, 20));
+        var middle = data.Tasks[1];
+        var undo = data.RemoveTaskWithUndo(middle.Id);
+        Assert.Equal(2, data.Tasks.Count);
+        undo!();
+        undo();
+        Assert.Equal(3, data.Tasks.Count);
+        Assert.Same(middle, data.Tasks[1]);
+        Assert.Null(data.RemoveTaskWithUndo(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void A_removed_course_takes_its_classes_and_tasks_and_gives_them_back()
+    {
+        var data = SampleData.Create(new DateTime(2026, 10, 20));
+        var cs = data.Courses[0];
+        var sessions = data.Sessions.Select(s => s.Id).ToList();
+        var tasks = data.Tasks.Select(t => t.Id).ToList();
+
+        var undo = data.RemoveCourseWithUndo(cs.Id);
+
+        Assert.DoesNotContain(data.Courses, c => c.Id == cs.Id);
+        Assert.DoesNotContain(data.Sessions, s => s.CourseId == cs.Id);
+        Assert.DoesNotContain(data.Tasks, t => t.CourseId == cs.Id);
+        Assert.Equal(4, data.Courses.Count);
+
+        undo!();
+        Assert.Same(cs, data.Courses[0]);
+        Assert.Equal(sessions, data.Sessions.Select(s => s.Id));
+        Assert.Equal(tasks, data.Tasks.Select(t => t.Id));
+    }
+
+    [Fact]
+    public void A_cleared_schedule_can_be_restored()
+    {
+        var data = SampleData.Create(new DateTime(2026, 10, 20));
+        var undo = data.ClearWithUndo();
+        Assert.Empty(data.Sessions);
+        Assert.Empty(data.Courses);
+        undo();
+        Assert.Equal((5, 7, 3), (data.Courses.Count, data.Sessions.Count, data.Tasks.Count));
+    }
+}

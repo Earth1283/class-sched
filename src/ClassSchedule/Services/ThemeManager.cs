@@ -39,13 +39,32 @@ public static class ThemeManager
         }
 
         IsDark = setting == "Dark" || (setting == "System" && SystemPrefersDark());
-        var uri = new Uri($"/ClassSchedule;component/Themes/{(IsDark ? "Dark" : "Light")}.xaml", UriKind.Relative);
-        var theme = new ResourceDictionary { Source = uri };
+        var theme = Load(IsDark);
         Tint(theme);
         Application.Current.Resources.MergedDictionaries[0] = theme;
 
         foreach (Window w in Application.Current.Windows) StyleTitleBar(w);
         Changed?.Invoke();
+    }
+
+    private static ResourceDictionary Load(bool dark) =>
+        new() { Source = new Uri($"/ClassSchedule;component/Themes/{(dark ? "Dark" : "Light")}.xaml", UriKind.Relative) };
+
+    /// <summary>A full set of theme brushes in the chosen light or dark look, with the current accent and palette, for a window that wants its own look.</summary>
+    public static ResourceDictionary Create(bool dark)
+    {
+        var current = IsDark;
+        IsDark = dark;
+        try
+        {
+            var theme = Load(dark);
+            Tint(theme);
+            return theme;
+        }
+        finally
+        {
+            IsDark = current;
+        }
     }
 
     private static void Tint(ResourceDictionary theme)

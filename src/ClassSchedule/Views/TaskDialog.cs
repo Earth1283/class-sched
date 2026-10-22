@@ -17,7 +17,7 @@ public sealed class TaskDialog : DialogWindow
     private readonly Dictionary<Guid, ToggleButton> courseChips = new();
     private readonly ToggleButton assignment, exam;
 
-    public TaskDialog(Window owner, ScheduleData data, TaskItem? existing, DateTime? suggestedDue = null)
+    public TaskDialog(Window owner, ScheduleData data, TaskItem? existing, DateTime? suggestedDue = null, Guid? courseId = null)
         : base(owner, existing is null ? "New task" : "Edit task", existing is null ? "Add assignment or exam" : "Edit task")
     {
         this.data = data;
@@ -33,7 +33,7 @@ public sealed class TaskDialog : DialogWindow
         var courses = new WrapPanel();
         foreach (var c in data.Courses)
         {
-            var chip = Chip(c.Code, existing?.CourseId == c.Id || (existing is null && c == data.Courses[0]), "course");
+            var chip = Chip(c.Code, existing is not null ? existing.CourseId == c.Id : courseId is { } wanted ? c.Id == wanted : c == data.Courses[0], "course");
             courseChips[c.Id] = chip;
             courses.Children.Add(chip);
         }
@@ -51,10 +51,13 @@ public sealed class TaskDialog : DialogWindow
         if (existing is not null)
         {
             var delete = Ui.Button("Delete", null, "BtnQuiet");
-            delete.Click += (_, _) => { data.Tasks.Remove(existing); DialogResult = true; };
+            delete.Click += (_, _) => { UndoDelete = data.RemoveTaskWithUndo(existing.Id); DialogResult = true; };
             AddLeftAction(delete);
         }
     }
+
+    /// <summary>Set when the task was deleted from the dialog; calling it puts the task back.</summary>
+    public Action? UndoDelete { get; private set; }
 
     protected override bool TrySave(out string message)
     {

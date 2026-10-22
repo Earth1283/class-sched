@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -101,6 +102,28 @@ public sealed class MenuPopup
             action();
         };
         stack.Children.Add(button);
+    }
+
+    /// <summary>A row of the course colors; picking one closes the menu.</summary>
+    public void AddSwatches(IEnumerable<string> keys, string selected, Action<string> pick)
+    {
+        var wrap = new WrapPanel { Margin = new Thickness(10, 4, 10, 6) };
+        var group = Guid.NewGuid().ToString();
+        foreach (var key in keys)
+        {
+            var swatch = new RadioButton { GroupName = group, IsChecked = key == selected, ToolTip = key };
+            swatch.SetResourceReference(FrameworkElement.StyleProperty, "Swatch");
+            swatch.SetResourceReference(Control.BackgroundProperty, $"Course.{key}.Dot");
+            System.Windows.Automation.AutomationProperties.SetName(swatch, key);
+            var chosen = key;
+            swatch.Click += (_, _) =>
+            {
+                popup.IsOpen = false;
+                if (chosen != selected) pick(chosen);
+            };
+            wrap.Children.Add(swatch);
+        }
+        stack.Children.Add(wrap);
     }
 
     /// <summary>Opens the menu under <paramref name="target"/>, as wide as it, like a drop-down list.</summary>

@@ -16,9 +16,9 @@ public static class ListViewBuilder
         var root = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
         foreach (var date in dates)
         {
-            var sessions = ScheduleQueries.SessionsOn(data, date.DayOfWeek);
+            var sessions = ScheduleQueries.SessionsOnDate(data, date);
             root.Children.Add(GroupHeader(date, sessions.Count, date.Date == now.Date));
-            if (sessions.Count == 0) root.Children.Add(Empty());
+            if (sessions.Count == 0) root.Children.Add(Empty(TermCalendar.ClassesRun(data.Settings, date) ? "" : TermCalendar.Of(data.Settings, date).Label));
             foreach (var placed in sessions) root.Children.Add(Row(placed, onClick, onContext, date.DayOfWeek));
         }
         return new ScrollViewer { Content = root, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Focusable = false };
@@ -52,9 +52,9 @@ public static class ListViewBuilder
         return bar;
     }
 
-    private static UIElement Empty()
+    private static UIElement Empty(string reason)
     {
-        var text = Ui.Text("No classes", 13, "Brush.Ink4");
+        var text = Ui.Text(reason.Length > 0 ? $"No classes · {reason}" : "No classes", 13, "Brush.Ink4");
         text.Margin = new Thickness(64, 0, 20, 12);
         return text;
     }

@@ -38,6 +38,9 @@ public static class IcsService
             Line("DTEND:" + (first + s.End).ToString(LocalFormat, CultureInfo.InvariantCulture));
             Line("RRULE:FREQ=WEEKLY;BYDAY=" + string.Join(",", s.Days.OrderBy(DayParser.Order).Select(DayParser.Iso))
                  + ";UNTIL=" + termEnd.ToString("yyyyMMdd", CultureInfo.InvariantCulture) + "T235959");
+            var skipped = BreakDates(data.Settings, s.Days, termStart, termEnd)
+                .Select(d => (d + s.Start).ToString(LocalFormat, CultureInfo.InvariantCulture)).ToList();
+            if (skipped.Count > 0) Line("EXDATE:" + string.Join(",", skipped));
             Line("SUMMARY:" + Escape(summary));
             if (s.Location.Length > 0) Line("LOCATION:" + Escape(s.Location));
             if (course.Instructor.Length > 0) Line("DESCRIPTION:" + Escape(course.Instructor));
@@ -59,6 +62,14 @@ public static class IcsService
 
         Line("END:VCALENDAR");
         return sb.ToString();
+    }
+
+    /// <summary>The dates in the term on which a class that meets on <paramref name="days"/> is cancelled by a break.</summary>
+    private static IEnumerable<DateTime> BreakDates(Settings s, IReadOnlyCollection<DayOfWeek> days, DateTime termStart, DateTime termEnd)
+    {
+        if (s.Breaks.Count == 0) yield break;
+        for (var d = termStart; d <= termEnd; d = d.AddDays(1))
+            if (days.Contains(d.DayOfWeek) && TermCalendar.BreakOn(s, d) is not null) yield return d;
     }
 
     public static ImportResult Import(string text, ScheduleData data)

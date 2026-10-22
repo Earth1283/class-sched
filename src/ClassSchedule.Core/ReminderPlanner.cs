@@ -13,7 +13,7 @@ public static class ReminderPlanner
 
         var lead = TimeSpan.FromMinutes(Math.Max(1, data.Settings.ReminderMinutes));
 
-        foreach (var p in ScheduleQueries.SessionsOn(data, now.DayOfWeek))
+        foreach (var p in ScheduleQueries.SessionsOnDate(data, now))
         {
             var start = now.Date + p.Session.Start;
             var until = start - now;
